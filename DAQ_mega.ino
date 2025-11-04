@@ -31,18 +31,18 @@ const int PT_pin3 = A2;
 const int PT_pin2 = A1;
 const int PT_pin1 = A0;
 
-const int LC1_A = A27; // Needs two analog pins
-const int LC1_B = A29;
+const int LC1_A = A35; // Needs two analog pins
+const int LC1_B = A37;
 const int LC2_A = A31; 
 const int LC2_B = A33;
-const int LC3_A = A35; 
-const int LC3_B = A37;
+const int LC3_A = A27; 
+const int LC3_B = A29;
 
 
 // Calibration factors (you’ll set these after calibration)
-float calFactor1 = -7050.0;  // Example values
-float calFactor2 = -7050.0;
-float calFactor3 = -7050.0;
+float calFactor1 = 2900;  // Example values
+float calFactor2 = 6050;
+float calFactor3 = 7300.0;
 
 // initialize voltage values for speed
 int PT_read7 = 0;
