@@ -19,43 +19,50 @@ inline void set485Talk() {     // Transmit mode: RE=HIGH, DE=HIGH
   digitalWrite(RS485_DE_PIN, HIGH);
 }
 
+String stateStr = "";
+
 void stateCheck(){
+  stateStr = "";
+  
   for(int i = 0; i<8; i++){
-     String stateStr = "";
+      stateStr = "";
+      
       switch(i){
-      case 0:
-        stateStr += "Fuel N2 Valve:    ";   
-
-      break;
-      case 1:
-        stateStr += "LOX N2 Valve:     ";
-
-      break;
-      case 2:
-        stateStr += "Main Fuel Valve:  ";
-
-      break;
-      case 3:
-        stateStr += "Main O2 Valve:    ";
-        
-      break;
-      case 4:
-        stateStr += "Fuel Vent Valve:  ";
-        
-      break;
-      case 5:
-        stateStr += "O2 Vent Valve:    ";
-
-      break;
-      case 6:
-        stateStr += "Fuel Purge Valve: ";
-
-      break;
-      case 7:
-        stateStr += "O2 Purge Valve:   ";
-
-      break;
-
+        case 0:
+          stateStr = "Fuel N2 Valve:    ";   
+  
+        break;
+        case 1:
+          stateStr = "LOX N2 Valve:     ";
+  
+        break;
+        case 2:
+          stateStr = "Main Fuel Valve:  ";
+  
+        break;
+        case 3:
+          stateStr = "Main O2 Valve:    ";
+          
+        break;
+        case 4:
+          stateStr = "Fuel Vent Valve:  ";
+          
+        break;
+        case 5:
+          stateStr = "O2 Vent Valve:    ";
+  
+        break;
+        case 6:
+          stateStr = "Fuel Purge Valve: ";
+  
+        break;
+        case 7:
+          stateStr = "O2 Purge Valve:   ";
+        break;
+        default:
+        break;
+      }
+      
       if(statevec[i] == 0){
         stateStr += "CLOSED";
       }
@@ -66,7 +73,7 @@ void stateCheck(){
 
       Serial.println(stateStr);
     
-    }
+    
   }
 }
 
@@ -116,7 +123,7 @@ void loop() {
    
         for (uint16_t i = 0; i < command.length(); ++i) {
           char c = command[i];
-          if (c >= 'A' && c <= 'M') { cmd = c; break; }
+          if (c >= 'A' && c <= 'N') { cmd = c; break; }
         }
         
     
@@ -132,44 +139,44 @@ void loop() {
             
             switch(cmd){   // Keep track of states
               case 'A':
-                statevec[1] = !statevec[1];
+                statevec[0] = !statevec[0];
               break;
               case 'B':
-                statevec[2] = !statevec[2];
+                statevec[1] = !statevec[1];
               break;
               case 'C':
-                statevec[3] = !statevec[3];
+                statevec[2] = !statevec[2];
               break;
               case 'D':
-                statevec[4] = !statevec[4];
+                statevec[3] = !statevec[3];
               break;
               case 'E':
-                statevec[5] = !statevec[5];
-              break;
-              case 'F':
-                statevec[6] = !statevec[6];
-              break;
-              case 'G':
-                statevec[7] = !statevec[7];
-              break;
-              case 'H':
-                statevec[8] = !statevec[8];
-              break;
-              case 'I':
-                statevec[3] = !statevec[3];
                 statevec[4] = !statevec[4];
               break;
-              case 'J':
-                statevec[1] = !statevec[2];
-                statevec[1] = !statevec[2];
-              break;
-              case 'K':
+              case 'F':
                 statevec[5] = !statevec[5];
+              break;
+              case 'G':
                 statevec[6] = !statevec[6];
               break;
-              case 'L':
+              case 'H':
                 statevec[7] = !statevec[7];
-                statevec[8] = !statevec[8];
+              break;
+              case 'I':
+                statevec[2] = !statevec[2];
+                statevec[3] = !statevec[3];
+              break;
+              case 'J':
+                statevec[0] = !statevec[1];
+                statevec[0] = !statevec[1];
+              break;
+              case 'K':
+                statevec[4] = !statevec[4];
+                statevec[5] = !statevec[5];
+              break;
+              case 'L':
+                statevec[6] = !statevec[6];
+                statevec[7] = !statevec[7];
               break;
               case 'M':
                 for(int i = 0; i < 8; i++){
