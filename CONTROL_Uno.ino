@@ -105,8 +105,7 @@ void loop() {
     Serial.println("K) Toggle vent valves");
     Serial.println("L) Toggle purge valves");
     Serial.println("M) Close all valves");
-    Serial.println("N) Fire igniter");
-    Serial.println("O) Check Valve States");
+    Serial.println("N) Check Valve States");
     
     
     Serial.println("Enter the option of the valve you want to toggle: ");
@@ -117,12 +116,12 @@ void loop() {
    
         for (uint16_t i = 0; i < command.length(); ++i) {
           char c = command[i];
-          if (c >= 'A' && c <= 'N') { cmd = c; break; }
+          if (c >= 'A' && c <= 'M') { cmd = c; break; }
         }
         
     
         if (cmd) {
-          if(cmd >= 'A' && cmd <= 'N'){
+          if(cmd >= 'A' && cmd <= 'M'){
             set485Talk();
             RS485Serial.write(cmd);
             RS485Serial.write('\n');
@@ -180,7 +179,7 @@ void loop() {
               }
             
           }
-          else if(cmd == 'O'){
+          else if(cmd == 'N'){
             stateCheck();
           }
         }
