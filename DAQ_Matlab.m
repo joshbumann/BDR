@@ -14,7 +14,7 @@ pause(2)
 
 uno = serialport(port, 115200);
 configureTerminator(uno, 62); % Wait for the end character '>'
-uno.Timeout = 5; % Add a timeout of 5 seconds
+uno.Timeout = 15; % Add a timeout of 5 seconds
 
 %% Set up figures
 
@@ -27,6 +27,13 @@ title(t,"Test stand data")
 tiledlayout("flow")
 grid on;
 
+nexttile(1);
+nexttile(2);
+nexttile(3);
+nexttile(4);
+nexttile(5);
+nexttile(6);
+nexttile(7);
 
 
 s1 = 0;
@@ -36,9 +43,12 @@ s4 = 0;
 s5 = 0;
 s6 = 0;
 s7 = 0;
+s8 = 0;
+s9 = 0;
+s10 = 0;
 
 
-data = [0 0 0 0 0 0 0];
+data = [0 0 0 0 0 0 0 0];
 i = 1;
 
 %% Run plot
@@ -99,7 +109,7 @@ while true
                 plot(s1);
                 title("PT 1")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel("Engine: Fuel Inlet")
                 grid on;
             
                 
@@ -108,33 +118,33 @@ while true
                 plot(s2);
                 title("PT 2")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel("Engine: Fuel Injector")
                 grid on;
 
-                %{
+                
                 nexttile(3)
                 s3 =[s3,pressure3];
                 plot(s3);
                 title("PT 3")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel("Engine: LOX Inlet")
                 grid on;
-                %}
+                
             
-                nexttile(3)
+                nexttile(4)
                 s4 =[s4,pressure4];
                 plot(s4);
                 title("PT 4")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel("Tank: Fuel")
                 grid on;
             
-                nexttile(4)
+                nexttile(5)
                 s5 =[s5,pressure5];
                 plot(s5);
                 title("PT 5")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel("Tank: LOX")
                 grid on;
                 
                 %{
@@ -155,25 +165,25 @@ while true
                 grid on;
                 %}
                 
-                nexttile(5)
-                s5 =[s5,Load1];
-                plot(s5);
+                nexttile(6)
+                s8 =[s8,Load1];
+                plot(s8);
                 title("Load Cell 1")
                 xlabel('Time')
                 ylabel("Load (lbf)")
                 grid on;
                 
-                nexttile(6)
-                s6 =[s6,Load2];
-                plot(s6);
+                nexttile(7)
+                s9 =[s9,Load2];
+                plot(s9);
                 title("Load Cell 2")
                 xlabel('Time')
                 ylabel("Load (lbf)")
                 grid on;
                 
-                nexttile(7)
-                s7 =[s7,Load3];
-                plot(s7);
+                nexttile(8)
+                s10 =[s10,Load3];
+                plot(s10);
                 title("Load Cell 3")
                 xlabel('Time')
                 ylabel("Load (lbf)")
@@ -183,11 +193,12 @@ while true
                 
                 data(i, 1) = pressure1;
                 data(i, 2) = pressure2;
-                data(i, 3) = pressure4;
-                data(i, 4) = pressure5;
-                data(i, 5) = Load1;
-                data(i, 6) = Load2;
-                data(i, 7) = Load3;
+                data(i, 3) = pressure3;
+                data(i, 4) = pressure4;
+                data(i, 5) = pressure5;
+                data(i, 6) = Load1;
+                data(i, 7) = Load2;
+                data(i, 8) = Load3;
 
                 i = i + 1;
 
