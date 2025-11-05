@@ -19,35 +19,15 @@ uno.Timeout = 5; % Add a timeout of 5 seconds
 %% Set up figures
 
 figure();
-%title("Pressure Data")
 grid on;
 
 clf
-t = tiledlayout(2,2);
-title(t,"PT data")
+t = tiledlayout(4,2);
+title(t,"Test stand data")
 tiledlayout("flow")
-
-%xlabel(t,'Time')
-%ylabel(t,'Pressure(psi)')
 grid on;
 
-nexttile(1)
 
-nexttile(2)
-%title("PT 2")
-nexttile(3)
-%title("PT 4")
-nexttile(4)
-%title("PT 5")
-
-
-
-
-
-%title("Internships we're landing this year")
-%x = 0:1:365;
-%y = zeros(366);
-%plot(x,y);
 
 s1 = 0;
 s2 = 0;
@@ -58,7 +38,7 @@ s6 = 0;
 s7 = 0;
 
 
-ptdata = [0 0 0 0];
+data = [0 0 0 0 0 0 0];
 i = 1;
 
 %% Run plot
@@ -174,13 +154,40 @@ while true
                 ylabel("Pressure(psi)")
                 grid on;
                 %}
+                
+                nexttile(5)
+                s5 =[s5,Load1];
+                plot(s5);
+                title("Load Cell 1")
+                xlabel('Time')
+                ylabel("Load (lbf)")
+                grid on;
+                
+                nexttile(6)
+                s6 =[s6,Load2];
+                plot(s6);
+                title("Load Cell 2")
+                xlabel('Time')
+                ylabel("Load (lbf)")
+                grid on;
+                
+                nexttile(7)
+                s7 =[s7,Load3];
+                plot(s7);
+                title("Load Cell 3")
+                xlabel('Time')
+                ylabel("Load (lbf)")
+                grid on;
             
                 drawnow;
                 
-                ptdata(i, 1) = pressure1;
-                ptdata(i, 2) = pressure2;
-                ptdata(i, 3) = pressure4;
-                ptdata(i, 4) = pressure5;
+                data(i, 1) = pressure1;
+                data(i, 2) = pressure2;
+                data(i, 3) = pressure4;
+                data(i, 4) = pressure5;
+                data(i, 5) = Load1;
+                data(i, 6) = Load2;
+                data(i, 7) = Load3;
 
                 i = i + 1;
 
