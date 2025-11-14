@@ -14,40 +14,27 @@ pause(2)
 
 uno = serialport(port, 115200);
 configureTerminator(uno, 62); % Wait for the end character '>'
-uno.Timeout = 5; % Add a timeout of 5 seconds
+uno.Timeout = 15; % Add a timeout of 5 seconds
 
 %% Set up figures
 
 figure();
-%title("Pressure Data")
 grid on;
 
 clf
-t = tiledlayout(2,2);
-title(t,"PT data")
+t = tiledlayout(4,2);
+title(t,"Test stand data")
 tiledlayout("flow")
-
-%xlabel(t,'Time')
-%ylabel(t,'Pressure(psi)')
 grid on;
 
-nexttile(1)
+nexttile(1);
+nexttile(2);
+nexttile(3);
+nexttile(4);
+nexttile(5);
+nexttile(6);
+nexttile(7);
 
-nexttile(2)
-%title("PT 2")
-nexttile(3)
-%title("PT 4")
-nexttile(4)
-%title("PT 5")
-
-
-
-
-
-%title("Internships we're landing this year")
-%x = 0:1:365;
-%y = zeros(366);
-%plot(x,y);
 
 s1 = 0;
 s2 = 0;
@@ -56,9 +43,12 @@ s4 = 0;
 s5 = 0;
 s6 = 0;
 s7 = 0;
+s8 = 0;
+s9 = 0;
+s10 = 0;
 
 
-ptdata = [0 0 0 0];
+data = [0 0 0 0 0 0 0 0];
 i = 1;
 
 %% Run plot
@@ -101,14 +91,41 @@ while true
             
             
                 %% Calibrate pressure
-            
-                pressure1 = Pt_volt1 * 0.069307 - 139.1386; % Need to determine conversion and offest experimentally
-                pressure2 = Pt_volt2 * 0.069307 - 139.1386; % Factors will likely be different for each sensor
-                pressure3 = Pt_volt3 * 0.069307 - 139.1386;
-                pressure4 = Pt_volt4 * 0.069307 - 139.1386 - 1;
-                pressure5 = Pt_volt5 * 0.069307 - 139.1386;
-                pressure6 = Pt_volt6 * 0.069307 - 139.1386;
-                pressure7 = Pt_volt7 * 0.069307 - 139.1386;
+                if (Pt_volt1 < 500)
+                    pressure1 = Pt_volt1 * 0.48256229 - 61.43046801;
+                elseif (Pt_volt1 >= 500)
+                    pressure1 = Pt_volt1 * 0.45402951 - 61.03072035;
+                end
+                if (Pt_volt2 < 500)
+                    pressure2 = Pt_volt2 * 0.48256229 - 61.43046801;   
+                elseif (Pt_volt2 >= 500)
+                    pressure2 = Pt_volt2 * 0.45402951 - 61.03072035;
+                end
+                if (Pt_volt3 < 500)
+                    pressure3 = Pt_volt3 * 0.48256229 - 61.43046801;   
+                elseif (Pt_volt3 >= 500)
+                    pressure3 = Pt_volt3 * 0.45402951 - 61.03072035;
+                end
+                if (Pt_volt4 < 500)
+                    pressure4 = Pt_volt4 * 0.48256229 - 61.43046801;   
+                elseif (Pt_volt4 >= 500)
+                    pressure4 = Pt_volt4 * 0.45402951 - 61.03072035;
+                end
+                if (Pt_volt5 < 500)
+                    pressure5 = Pt_volt5 * 0.48256229 - 61.43046801;   
+                elseif (Pt_volt5 >= 500)
+                    pressure5 = Pt_volt5 * 0.45402951 - 61.03072035;
+                end
+                if (Pt_volt6 < 500)
+                    pressure6 = Pt_volt6 * 0.48256229 - 61.43046801;   
+                elseif (Pt_volt6 >= 500)
+                    pressure6 = Pt_volt6 * 0.45402951 - 61.03072035;
+                end
+                if (Pt_volt7 < 500)
+                    pressure7 = Pt_volt7 * 0.48256229 - 61.43046801;   
+                elseif (Pt_volt7 >= 500)
+                    pressure2 = Pt_volt7 * 0.45402951 - 61.03072035;
+                end
             
             
             
@@ -119,7 +136,8 @@ while true
                 plot(s1);
                 title("PT 1")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel('Pressure(psi)')
+                title("Engine: Fuel Inlet")
                 grid on;
             
                 
@@ -128,33 +146,37 @@ while true
                 plot(s2);
                 title("PT 2")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel('Pressure(psi)')
+                title("Engine: Fuel Injector")
                 grid on;
 
-                %{
+                
                 nexttile(3)
                 s3 =[s3,pressure3];
                 plot(s3);
                 title("PT 3")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel('Pressure(psi)')
+                title("Engine: LOX Inlet")
                 grid on;
-                %}
+                
             
-                nexttile(3)
+                nexttile(4)
                 s4 =[s4,pressure4];
                 plot(s4);
                 title("PT 4")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel('Pressure(psi)')
+                title("Tank: Fuel")
                 grid on;
             
-                nexttile(4)
+                nexttile(5)
                 s5 =[s5,pressure5];
                 plot(s5);
                 title("PT 5")
                 xlabel('Time')
-                ylabel("Pressure(psi)")
+                ylabel('Pressure(psi)')
+                title("Tank: LOX")
                 grid on;
                 
                 %{
@@ -174,13 +196,41 @@ while true
                 ylabel("Pressure(psi)")
                 grid on;
                 %}
+                
+                nexttile(6)
+                s8 =[s8,Load1];
+                plot(s8);
+                title("Load Cell 1")
+                xlabel('Time')
+                ylabel("Load (lbf)")
+                grid on;
+                
+                nexttile(7)
+                s9 =[s9,Load2];
+                plot(s9);
+                title("Load Cell 2")
+                xlabel('Time')
+                ylabel("Load (lbf)")
+                grid on;
+                
+                nexttile(8)
+                s10 =[s10,Load3];
+                plot(s10);
+                title("Load Cell 3")
+                xlabel('Time')
+                ylabel("Load (lbf)")
+                grid on;
             
                 drawnow;
                 
-                ptdata(i, 1) = pressure1;
-                ptdata(i, 2) = pressure2;
-                ptdata(i, 3) = pressure4;
-                ptdata(i, 4) = pressure5;
+                data(i, 1) = pressure1;
+                data(i, 2) = pressure2;
+                data(i, 3) = pressure3;
+                data(i, 4) = pressure4;
+                data(i, 5) = pressure5;
+                data(i, 6) = Load1;
+                data(i, 7) = Load2;
+                data(i, 8) = Load3;
 
                 i = i + 1;
 
