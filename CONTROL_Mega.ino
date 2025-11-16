@@ -17,19 +17,12 @@ const uint8_t RS485_RE_PIN = 12;  // RE pin of RS485
 // Relays on D26..D33
 const uint8_t RELAY_PINS[8] = {26,27,28,29,30,31,32,33};
 bool relayState[8] = {0,0,0,0,0,0,0,0};
-const uint8_t mbvPins[4] = {2,3,4,5};
 
 const int NUM_VALVES = 8;
 
-const int MVB1pin_open = 2;
-const int MVB2pin_open = 4;
 
-const int MVB1pin_close = 3;
-const int MVB2pin_close = 5;
-
-const int motorvalve1pin[2] = {2,3}; // Fuel N2
-const int motorvalve2pin[2] = {4,5}; // LOX N2
-const int igniterpin = 27;
+const int motorvalve1pin = 26;  // Fuel N2
+const int motorvalve2pin = 27;  // LOX N2
 const int pneuvalve1pin = 28;   // MFV
 const int pneuvalve2pin = 29;   // MOV
 const int pneuvalve3pin = 30;   // Fuel Vent
@@ -68,38 +61,12 @@ void closeValve(int valveIndex) {
   }
 }
 
-// toggle MBV state
-inline void toggleMbv(int option) {
-  if (option == 1)
-  {
-    int currentState = digitalRead(MVB1pin_open);
-    
-    
-    digitalWrite(MVB1pin_open, !currentState);
-    digitalWrite(MVB1pin_close, currentState);
-    
-  }
-  else if (option == 2)
-  {
-    int currentState = digitalRead(MVB2pin_open);
-  
-    digitalWrite(MVB2pin_open, !currentState);
-    digitalWrite(MVB2pin_close, currentState);
-  }
-}
 
-// Set MBV positon to close
-void closeMbvs() {
-    digitalWrite(MVB1pin_open, 0);
-    digitalWrite(MVB1pin_close, 1);
-    
-    digitalWrite(MVB2pin_open, 0);
-    digitalWrite(MVB2pin_close, 1);
-}
 
 // All valves close
 void closeAllValves() {
-    closeMbvs();
+    digitalWrite(motorvalve1pin, LOW);
+    digitalWrite(motorvalve2pin, LOW);
     digitalWrite(pneuvalve1pin, LOW);
     digitalWrite(pneuvalve2pin, LOW);
     digitalWrite(pneuvalve3pin, LOW);
@@ -132,12 +99,8 @@ void setup() {
     pinMode(RELAY_PINS[i], OUTPUT);
     setRelay(i, false);
   }
-  // set all driver pins LOW initially
-  for (int i = 0; i < 4; i++ ) {
-    pinMode(mbvPins[i], OUTPUT);
-    digitalWrite(mbvPins[i], 0);
-  }
-  closeMbvs();
+  
+  
 }
 
 void loop() {
@@ -155,10 +118,10 @@ void loop() {
           
           switch (option) {
           case 'A':
-            toggleMbv(1);
+            toggleValve(motorvalve1pin);
             break;
           case 'B':
-            toggleMbv(2);
+            toggleValve(motorvalve2pin);
             break;
           case 'C':
             toggleValve(pneuvalve1pin);
@@ -183,8 +146,8 @@ void loop() {
             toggleValve(pneuvalve2pin); // MOV
             break;
           case 'J':
-            toggleMbv(1); // N2 valves
-            toggleMbv(2);
+            toggleValve(motorvalve1pin); // N2 valves
+            toggleValve(motorvalve2pin);
             break;
           case 'K':
             toggleValve(pneuvalve3pin); // Vent valves
@@ -197,9 +160,6 @@ void loop() {
           case 'M':
             closeAllValves();
             break;
-          case 'N': // Igniter relay
-            toggleRelay(2); // Make this more robust in future
-          break;
           default:
             //Serial.println("Invalid input. Enter 1-8.");
           break;
