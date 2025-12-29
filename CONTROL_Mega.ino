@@ -17,6 +17,7 @@ const uint8_t RS485_RE_PIN = 12;  // RE pin of RS485
 // Relays on D26..D33
 const uint8_t RELAY_PINS[8] = {26,27,28,29,30,31,32,33};
 bool relayState[8] = {0,0,0,0,0,0,0,0};
+bool sequenceTriggered[5] = {0,0,0,0,0}; // Track which sequences have been triggered (1-5)
 
 const int NUM_VALVES = 8;
 
@@ -61,8 +62,6 @@ void closeValve(int valveIndex) {
   }
 }
 
-
-
 // All valves close
 void closeAllValves() {
     digitalWrite(motorvalve1pin, LOW);
@@ -103,6 +102,54 @@ void setup() {
   
 }
 
+
+
+// HOTFIRE VARIABLES
+
+int currentHFstate = 0; // Keeps track of current state (0-5). 0 means coldflow mode.
+bool engineFired = 0;   // Helps with logic for ending hot fire. Changes if engine has been fired.
+
+int delay_closevent_openMBVs = 0; // HFS2 : the delay betewen closing the vents and opening the MBVs. Something small just to act as a buffer not to vent any unessesary N2
+int delay_openMBVs = 0;           // This is the standard time it takes for the MBVs to fully open. Having this delay in the code will safeguard against trying to do anything unless they are fully toggled.
+int delay_closeMBVs = 0;          // Same as above, but in case closing takes a different time.
+int delay_toggleVents = 0;        // This delay will go between opening and closing the vents. Just needs to be the amount of time to depressurize.
+
+int delay_MFV_MOV = 0;            // This is the delay between opening the main valves. We want the liquids to enter the injector at the same time, and this takes into account that the fuel needs to travel through the regen channels.
+int delay_igniter = 0;            // Delay between the main valves being opened and the igniter firing.
+
+int delay_closeMVs_openPurge = 0;       // Delay between closing the main valves and opening the the purge and vent lines
+int delay_lengthPurge = 0;              // How long we want to the purge to run
+int delay_closePurge_closeVents = 0;    // Short delay between closing the purge and vents so everything the the purge lines can escape
+
+
+// HOTFIRE FUNCTIONS
+
+void HF0toHF1(){
+
+}
+void HF1toHF2(){
+  
+}
+void HF2toHF3(){ // executes after Y command
+  
+}
+void HF3toHF4(){
+  
+}
+void HF4toHF5(){
+  
+}
+void HF1toHF0(){
+  
+}
+void HF2toHF0(){
+  
+}
+void HF2toHF1(){
+  
+}
+
+
 void loop() {
 
     set485Listen();
@@ -114,56 +161,109 @@ void loop() {
 
         if (command.length() > 0) {
 
-          char option = command[0];
+          char cmd = command[0];
           
-          switch (option) {
-          case 'A':
-            toggleValve(motorvalve1pin);
+          // Detect input
+          if(cmd >= 'A' && cmd <= 'M' && currentHFstate == 0 )
+            switch (cmd) {
+            case 'A':
+              toggleValve(motorvalve1pin);
+              break;
+            case 'B':
+              toggleValve(motorvalve2pin);
+              break;
+            case 'C':
+              toggleValve(pneuvalve1pin);
+              break;
+            case 'D':
+              toggleValve(pneuvalve2pin);
+              break;
+            case 'E':
+              toggleValve(pneuvalve3pin);
+              break;
+            case 'F':
+              toggleValve(pneuvalve4pin);
+              break;
+            case 'G':
+              toggleValve(pneuvalve5pin);
+              break;
+            case 'H':
+              toggleValve(pneuvalve6pin);
+              break;
+            case 'I':
+              toggleValve(pneuvalve1pin); // MFV
+              toggleValve(pneuvalve2pin); // MOV
+              break;
+            case 'J':
+              toggleValve(motorvalve1pin); // N2 valves
+              toggleValve(motorvalve2pin);
+              break;
+            case 'K':
+              toggleValve(pneuvalve3pin); // Vent valves
+              toggleValve(pneuvalve4pin);
+              break;
+            case 'L':
+              toggleValve(pneuvalve5pin); // Purge valves
+              toggleValve(pneuvalve6pin);
+              break;
+            case 'M':
+              closeAllValves();
+              break;
+            default:
+              //Serial.println("Invalid input. Enter 1-8.");
             break;
-          case 'B':
-            toggleValve(motorvalve2pin);
-            break;
-          case 'C':
-            toggleValve(pneuvalve1pin);
-            break;
-          case 'D':
-            toggleValve(pneuvalve2pin);
-            break;
-          case 'E':
-            toggleValve(pneuvalve3pin);
-            break;
-          case 'F':
-            toggleValve(pneuvalve4pin);
-            break;
-          case 'G':
-            toggleValve(pneuvalve5pin);
-            break;
-          case 'H':
-            toggleValve(pneuvalve6pin);
-            break;
-          case 'I':
-            toggleValve(pneuvalve1pin); // MFV
-            toggleValve(pneuvalve2pin); // MOV
-            break;
-          case 'J':
-            toggleValve(motorvalve1pin); // N2 valves
-            toggleValve(motorvalve2pin);
-            break;
-          case 'K':
-            toggleValve(pneuvalve3pin); // Vent valves
-            toggleValve(pneuvalve4pin);
-            break;
-          case 'L':
-            toggleValve(pneuvalve5pin); // Purge valves
-            toggleValve(pneuvalve6pin);
-            break;
-          case 'M':
-            closeAllValves();
-            break;
-          default:
-            //Serial.println("Invalid input. Enter 1-8.");
-          break;
+          }
+          else if(currentHFstate == 0 && cmd == '1'){
+            // Enter HF mode
+            HF0toHF1();
+            currentHFstate = 1;
+          }
+          else if(currentHFstate == 1){
+            if(cmd == '0'){
+              HF1toHF0();
+              currentHFstate = 0;
+            }
+            else if(cmd == '2'){
+              HF1toHF2();
+              currentHFstate = 2;
+            }
+          }
+          else if(currentHFstate == 2){
+            if(cmd == '0'){
+              HF2toHF0();
+              currentHFstate = 0;
+            }
+            else if(cmd == ''1){
+              HF2toHF1();
+              currentHFstate = 1;
+            }
+            else if(cmd == '3'){
+              currentHFstate = 3;
+            }
+          }
+          else if(currentHFstate == 3){
+            if(cmd == 'N'){
+              currentHFstate = 2; // Send back with no change
+            }
+            else if(cmd == 'Y'){
+              HF2toHF3();
+              engineFired = 1;
+            }
+            else if(cmd == '4' && engineFired == 1){
+              HF3toHF4();
+              engineFired = 0;
+              currentHFstate = 4;
+            }
 
+          }
+          else if(currentHFstate == 4){
+            if(cmd == '5'){
+              HF4toHF5();
+              currentHFState = 0;
+            }
+          }
+          
+          
           RS485Serial.flush();
           delay(2);
           set485Listen();
