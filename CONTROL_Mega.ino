@@ -48,16 +48,16 @@ inline void setRelay(uint8_t idx, bool on) {
 inline void toggleRelay(uint8_t idx) { setRelay(idx, !relayState[idx]); }
 
 
-// Turn a specific valve ON
+// Turn a specific valve ON (FIX LATER: This turns the relay on. openValve on a vent will close it)
 void openValve(int valveIndex) {
-  if (valveIndex >= 0 && valveIndex < NUM_VALVES+27) {
+  if (valveIndex >= 26 && valveIndex <= 33) {
     digitalWrite(valveIndex, HIGH);
   }
 }
 
-// Turn a specific valve OFF
+// Turn a specific valve OFF (FIX LATER: This turns the relay off. closeValve on a vent will open it)
 void closeValve(int valveIndex) {
-  if (valveIndex >= 0 && valveIndex < NUM_VALVES+27) {
+  if (valveIndex >= 26 && valveIndex <= 33) {
     digitalWrite(valveIndex, LOW);
   }
 }
@@ -68,8 +68,8 @@ void closeAllValves() {
     digitalWrite(motorvalve2pin, LOW);
     digitalWrite(pneuvalve1pin, LOW);
     digitalWrite(pneuvalve2pin, LOW);
-    digitalWrite(pneuvalve3pin, LOW);
-    digitalWrite(pneuvalve4pin, LOW);
+    digitalWrite(pneuvalve3pin, HIGH); // Vents must be high to be closed
+    digitalWrite(pneuvalve4pin, HIGH); //
     digitalWrite(pneuvalve5pin, LOW);
     digitalWrite(pneuvalve6pin, LOW);
 }
@@ -77,7 +77,7 @@ void closeAllValves() {
 
 // Toggle valve from current state
 void toggleValve(int valveIndex) {
-  if (valveIndex >= 0 && valveIndex < NUM_VALVES+27) {
+  if (valveIndex >= 26 && valveIndex <= 33) {
     int currentState = digitalRead(valveIndex);
     digitalWrite(valveIndex, !currentState);
   }
@@ -108,6 +108,7 @@ void setup() {
 
 int currentHFstate = 0; // Keeps track of current state (0-5). 0 means coldflow mode.
 bool engineFired = 0;   // Helps with logic for ending hot fire. Changes if engine has been fired.
+int igniterPin = 0;
 
 int delay_closevent_openMBVs = 0; // HFS2 : the delay betewen closing the vents and opening the MBVs. Something small just to act as a buffer not to vent any unessesary N2
 int delay_openMBVs = 0;           // This is the standard time it takes for the MBVs to fully open. Having this delay in the code will safeguard against trying to do anything unless they are fully toggled.
@@ -115,9 +116,10 @@ int delay_closeMBVs = 0;          // Same as above, but in case closing takes a 
 int delay_toggleVents = 0;        // This delay will go between opening and closing the vents. Just needs to be the amount of time to depressurize.
 
 int delay_MFV_MOV = 0;            // This is the delay between opening the main valves. We want the liquids to enter the injector at the same time, and this takes into account that the fuel needs to travel through the regen channels.
-int delay_igniter = 0;            // Delay between the main valves being opened and the igniter firing.
+int delay_igniter = 0;            // Delay between igniter firing and the main propellant valves opening.
 
 int delay_closeMVs_openPurge = 0;       // Delay between closing the main valves and opening the the purge and vent lines
+int delay_purge2vents = 0;              // Delay between closing MBVs and opening purge to closing vents
 int delay_lengthPurge = 0;              // How long we want to the purge to run
 int delay_closePurge_closeVents = 0;    // Short delay between closing the purge and vents so everything the the purge lines can escape
 
@@ -125,28 +127,97 @@ int delay_closePurge_closeVents = 0;    // Short delay between closing the purge
 // HOTFIRE FUNCTIONS
 
 void HF0toHF1(){
-
+  // Default pos
+  closeValve(26);
+  closeValve(27);
+  closeValve(28);
+  closeValve(29);
+  closeValve(30); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  closeValve(31); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  closeValve(32);
+  closeValve(33);
 }
 void HF1toHF2(){
-  
+  // Close vents
+  openValve(30); // WARNING: For this line, it says openValve, but the valve is being closed. Will be fixed in the future.
+  openValve(31); // WARNING: For this line, it says openValve, but the valve is being closed. Will be fixed in the future.
+
+  // Small delay to ensure vent close
+  delay(delay_closevent_openMBVs);
+
+  // Open MBVs
+  openValve(26);
+  openValve(27);
+  delay(delay_openMBVs);
+
 }
 void HF2toHF3(){ // executes after Y command
-  
+  // Fire igniter
+  pinMode(igniterPin, OUTPUT);
+  digitalWrite(igniterPin, HIGH)
+
+  // Delay for magnesium to catch
+  delay(delay_igniter);
+
+  // Open main prop valves, w/ delay for regen channels
+  openValve(28);
+  delay(delay_MFV_MOV);
+  openValve(29);
+
 }
 void HF3toHF4(){
-  
+  // Close MPVs (This phase might be changed for backflow issues)
+  closeValve(28);
+  closeValve(29);
+
+  delay(delay_closeMVs_openPurge);
+  // Open purge, close MBVs
+  openValve(32);
+  openValve(33);
+
+  closeValve(26);
+  closeValve(27);
+
+  delay(delay_purge2vents);
+  // Open vents
+  closeValve(30); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  closeValve(31); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+
 }
 void HF4toHF5(){
-  
+  // Close purge
+  closeValve(32);
+  closeValve(33);
+  // End of test. Returns to coldflow state
 }
 void HF1toHF0(){
-  
+  // Does nothing
+  // Leave in code for now inclase we decide to do something with it
 }
 void HF2toHF0(){
-  
+  // Emergency abort: Close MBVs, open purge, and open vent simultaneously
+  // Close MBVs
+  closeValve(26);
+  closeValve(27);
+
+  // Open vents
+  closeValve(30); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  closeValve(31); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+
+  // Open purge
+  openValve(32);
+  openValve(33);
 }
 void HF2toHF1(){
-  
+  // Close MBVs, wait for full close, then open vents
+  closeValve(26);
+  closeValve(27);
+
+  delay(delay_closeMBVs);
+
+  // Open vents
+  closeValve(30); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  closeValve(31); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
 }
 
 
