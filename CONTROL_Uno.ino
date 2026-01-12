@@ -9,7 +9,7 @@ const uint8_t RS485_DI_PIN = 7;  // TX to MAX485 DI
 SoftwareSerial RS485Serial(RS485_RO_PIN, RS485_DI_PIN); // rx, tx
 
 bool hotfireMode = 0;
-bool statevec[8] = {0,0,0,0,1,1,0,0};
+bool statevec[8] = {0,0,0,0,0,0,0,0};
 int currentHFState = 0; // Track which sequences have been triggered (1-5)
 
 inline void set485Listen() {   // Receive mode: RE=LOW, DE=LOW
@@ -152,7 +152,7 @@ void loop() {
       Serial.println("5) End Test - Return to Coldflow Mode");
       Serial.println("Y) Confirm Command");
       Serial.println("N) Cancel Command");
-      Serial.println("Q) Check Valve States");
+      Serial.println("Q) Check Valve States (Coming soon!)");
 
 
       Serial.println("Enter command: ");
