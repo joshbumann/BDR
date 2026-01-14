@@ -50,14 +50,23 @@ inline void toggleRelay(uint8_t idx) { setRelay(idx, !relayState[idx]); }
 
 // Turn a specific valve ON (FIX LATER: This turns the relay on. openValve on a vent will close it)
 void openValve(int valveIndex) {
-  if (valveIndex >= 26 && valveIndex <= 33) {
+  
+  if(valveIndex == 30 || valveIndex == 31) // Meant to handle the vents being normaly open
+  {
+    digitalWrite(valveIndex, LOW);
+  }
+  else if(valveIndex >= 26 && valveIndex <= 33) {
     digitalWrite(valveIndex, HIGH);
   }
 }
 
 // Turn a specific valve OFF (FIX LATER: This turns the relay off. closeValve on a vent will open it)
 void closeValve(int valveIndex) {
-  if (valveIndex >= 26 && valveIndex <= 33) {
+  if(valveIndex == 30 || valveIndex == 31) // Meant to handle the vents being normaly open
+  {
+    digitalWrite(valveIndex, HIGH);
+  }
+  else if(valveIndex >= 26 && valveIndex <= 33) {
     digitalWrite(valveIndex, LOW);
   }
 }
@@ -132,15 +141,15 @@ void HF0toHF1(){
   closeValve(27);
   closeValve(28);
   closeValve(29);
-  closeValve(30); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
-  closeValve(31); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  openValve(30); // Vents
+  openValve(31);
   closeValve(32);
   closeValve(33);
 }
 void HF1toHF2(){
   // Close vents
-  openValve(30); // WARNING: For this line, it says openValve, but the valve is being closed. Will be fixed in the future.
-  openValve(31); // WARNING: For this line, it says openValve, but the valve is being closed. Will be fixed in the future.
+  closeValve(30);
+  closeValve(31);
 
   // Small delay to ensure vent close
   delay(delay_closevent_openMBVs);
@@ -180,8 +189,8 @@ void HF3toHF4(){
 
   delay(delay_purge2vents);
   // Open vents
-  closeValve(30); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
-  closeValve(31); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  openValve(30);
+  openValve(31);
 
 }
 void HF4toHF5(){
@@ -192,7 +201,7 @@ void HF4toHF5(){
 }
 void HF1toHF0(){
   // Does nothing
-  // Leave in code for now inclase we decide to do something with it
+  // Leave in code for now incase we decide to do something with it
 }
 void HF2toHF0(){
   // Emergency abort: Close MBVs, open purge, and open vent simultaneously
@@ -201,8 +210,8 @@ void HF2toHF0(){
   closeValve(27);
 
   // Open vents
-  closeValve(30); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
-  closeValve(31); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  openValve(30);
+  openValve(31);
 
   // Open purge
   openValve(32);
@@ -216,8 +225,8 @@ void HF2toHF1(){
   delay(delay_closeMBVs);
 
   // Open vents
-  closeValve(30); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
-  closeValve(31); // WARNING: For this line, it says closeValve, but the valve is being opened. Will be fixed in the future.
+  openValve(30);
+  openValve(31);
 }
 
 
