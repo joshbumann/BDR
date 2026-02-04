@@ -117,21 +117,23 @@ void setup() {
 
 int currentHFstate = 0; // Keeps track of current state (0-5). 0 means coldflow mode.
 bool engineFired = 0;   // Helps with logic for ending hot fire. Changes if engine has been fired.
-int igniterPin = 0;
+bool igniterFired = 0;
+int igniterPin = 54;
 
-int delay_closevent_openMBVs = 0; // HFS2 : the delay betewen closing the vents and opening the MBVs. Something small just to act as a buffer not to vent any unessesary N2
-int delay_openMBVs = 0;           // This is the standard time it takes for the MBVs to fully open. Having this delay in the code will safeguard against trying to do anything unless they are fully toggled.
-int delay_closeMBVs = 0;          // Same as above, but in case closing takes a different time.
+int delay_closevent_openMBVs = 10; // HFS2 : the delay betewen closing the vents and opening the MBVs. Something small just to act as a buffer not to vent any unessesary N2
+int delay_openMBVs = 15000;           // This is the standard time it takes for the MBVs to fully open. Having this delay in the code will safeguard against trying to do anything unless they are fully toggled.
+int delay_closeMBVs = 15000;          // Same as above, but in case closing takes a different time.
 int delay_toggleVents = 0;        // This delay will go between opening and closing the vents. Just needs to be the amount of time to depressurize.
 
 int delay_MFV_MOV = 0;            // This is the delay between opening the main valves. We want the liquids to enter the injector at the same time, and this takes into account that the fuel needs to travel through the regen channels.
 int delay_igniter = 0;            // Delay between igniter firing and the main propellant valves opening.
 
+int delay_Bleed = 20;
 int delay_closeMVs_openPurge = 0;       // Delay between closing the main valves and opening the the purge and vent lines
-int delay_purge2vents = 0;              // Delay between closing MBVs and opening purge to closing vents
-int delay_lengthPurge = 0;              // How long we want to the purge to run
+int delay_purgeEnd = 5000;              // How long the purge is open to confirm shutdown
 int delay_closePurge_closeVents = 0;    // Short delay between closing the purge and vents so everything the the purge lines can escape
 
+int TEST_LENGTH = 3000;         // How long the MPVs will be open for a given test
 
 // HOTFIRE FUNCTIONS
 
@@ -157,46 +159,44 @@ void HF1toHF2(){
   // Open MBVs
   openValve(26);
   openValve(27);
-  delay(delay_openMBVs);
-
+  // The MBVs being fully open is up to the user to determine
 }
 void HF2toHF3(){ // executes after Y command
   // Fire igniter
   pinMode(igniterPin, OUTPUT);
   digitalWrite(igniterPin, HIGH)
-
-  // Delay for magnesium to catch
-  delay(delay_igniter);
-
+}
+void HF3toHF4(){ // executes after Y command
+  
   // Open main prop valves, w/ delay for regen channels
   openValve(28);
   delay(delay_MFV_MOV);
   openValve(29);
 
-}
-void HF3toHF4(){
-  // Close MPVs (This phase might be changed for backflow issues)
-  closeValve(28);
-  closeValve(29);
 
-  delay(delay_closeMVs_openPurge);
-  // Open purge, close MBVs
+  delay(TEST_LENGTH);
+
+
+  // Open purge
   openValve(32);
   openValve(33);
 
+  // Close MPVs 
+  closeValve(28);
+  closeValve(29);
+
+  // Close MBVs
   closeValve(26);
   closeValve(27);
 
-  delay(delay_purge2vents);
-  // Open vents
-  openValve(30);
-  openValve(31);
-
-}
-void HF4toHF5(){
+  delay(delay_purgeEnd);
   // Close purge
   closeValve(32);
   closeValve(33);
+
+}
+void HF4toHF5(){
+  // No functionality right now. Leave function here in case we need it later.
   // End of test. Returns to coldflow state
 }
 void HF1toHF0(){
@@ -228,7 +228,11 @@ void HF2toHF1(){
   openValve(30);
   openValve(31);
 }
-
+void bleedLoxPress(){
+  openValve(31);
+  delay(delay_Bleed);
+  closeValve(31);
+}
 
 void loop() {
 
@@ -243,7 +247,7 @@ void loop() {
 
           char cmd = command[0];
           
-          // Detect input
+          // Sort input
           if(cmd >= 'A' && cmd <= 'M' && currentHFstate == 0 )
             switch (cmd) {
             case 'A':
@@ -320,6 +324,9 @@ void loop() {
             else if(cmd == '3'){
               currentHFstate = 3;
             }
+            else if(cmd == 'Z'){
+              bleedLoxPress();
+            }
           }
           else if(currentHFstate == 3){
             if(cmd == 'N'){
@@ -327,19 +334,26 @@ void loop() {
             }
             else if(cmd == 'Y'){
               HF2toHF3();
-              engineFired = 1;
+              igniterFired = 1;
             }
-            else if(cmd == '4' && engineFired == 1){
-              HF3toHF4();
-              engineFired = 0;
+            else if(cmd == '4' && igniterFired == 1){
               currentHFstate = 4;
             }
 
           }
           else if(currentHFstate == 4){
-            if(cmd == '5'){
+            if(cmd == 'N'){
+              currentHFstate = 3; // Send back with no change
+            }
+            else if(cmd == 'Y'){
+              HF3toHF4();
+              engineFired = 1;
+            }
+            if(cmd == '5' && engineFired == 1){
               HF4toHF5();
               currentHFState = 0;
+              engineFired = 0;
+              igniterFired = 0;
             }
           }
           
