@@ -164,7 +164,7 @@ void HF1toHF2(){
 void HF2toHF3(){ // executes after Y command
   // Fire igniter
   pinMode(igniterPin, OUTPUT);
-  digitalWrite(igniterPin, HIGH)
+  digitalWrite(igniterPin, HIGH);
 }
 void HF3toHF4(){ // executes after Y command
   
@@ -228,11 +228,29 @@ void HF2toHF1(){
   openValve(30);
   openValve(31);
 }
+void HF3toHF0(){
+  // Emergency abort: Close MBVs, open purge, and open vent simultaneously
+  // Close MBVs
+  closeValve(26);
+  closeValve(27);
+
+  // Open vents
+  openValve(30);
+  openValve(31);
+
+  // Open purge
+  openValve(32);
+  openValve(33);
+}
+void HF3toHF2(){
+ // No functionality required currently
+}
 void bleedLoxPress(){
   openValve(31);
   delay(delay_Bleed);
   closeValve(31);
 }
+
 
 void loop() {
 
@@ -317,7 +335,7 @@ void loop() {
               HF2toHF0();
               currentHFstate = 0;
             }
-            else if(cmd == ''1){
+            else if(cmd == '1'){
               HF2toHF1();
               currentHFstate = 1;
             }
@@ -339,6 +357,14 @@ void loop() {
             else if(cmd == '4' && igniterFired == 1){
               currentHFstate = 4;
             }
+            else if(cmd == '0'){
+              HF3toHF0();
+              currentHFstate = 0;
+            }
+            else if(cmd == '2'){
+              HF3toHF2();
+              currentHFstate = 2;
+            }
 
           }
           else if(currentHFstate == 4){
@@ -349,9 +375,9 @@ void loop() {
               HF3toHF4();
               engineFired = 1;
             }
-            if(cmd == '5' && engineFired == 1){
+            else if(cmd == '5' && engineFired == 1){
               HF4toHF5();
-              currentHFState = 0;
+              currentHFstate = 0;
               engineFired = 0;
               igniterFired = 0;
             }
@@ -364,4 +390,4 @@ void loop() {
           }
       }
     }
-}
+
