@@ -104,14 +104,14 @@ void setup() {
 }
 
 char getInput(){
-  string command = Serial.readStringUntil('\n'); // Read until a newline character
+  String command = Serial.readStringUntil('\n'); // Read until a newline character
     command.trim(); // Remove any whitespace
     
     char cmd = 0;
    
         for (uint16_t i = 0; i < command.length(); ++i) {
           char c = command[i];
-          if ((c >= 'A' && c <= 'N') || (c >= '0' && c <= '5') || c == 'Y' || c == 'Q') { cmd = c; break; }
+          if ((c >= 'A' && c <= 'N') || (c >= '0' && c <= '5') || c == 'Y' || c == 'Q' || c == 'Z') { cmd = c; break; }
         }
         return cmd;
 }
@@ -143,7 +143,7 @@ void loop() {
 
       Serial.println("Enter the option of the valve you want to toggle: ");
     }
-    cmd = getInput();
+    char cmd = getInput();
         
     
         if (cmd) {
@@ -197,8 +197,8 @@ void loop() {
                 for(int i = 0; i < 8; i++){
                   statevec[i] = 0;
                 }
-                statevec[4] = 1;
-                statevec[5] = 1;
+                statevec[4] = 0;
+                statevec[5] = 0;
                 break;
               }
             
@@ -228,7 +228,16 @@ void loop() {
                 // exit hotfire mode
                 // currentHFState = 0
                 // transmit 0 to the mega
-                statevec = {0,0,0,0,1,1,0,0};
+                
+                statevec[0] = 0;
+                statevec[1] = 0;
+                statevec[2] = 0;
+                statevec[3] = 0;
+                statevec[4] = 1;
+                statevec[5] = 1;
+                statevec[6] = 0;
+                statevec[7] = 0;
+
                 hotfireMode = 0;
                 currentHFState = 0;
                 transmitCommand('0');
@@ -266,7 +275,14 @@ void loop() {
                 currentHFState = 0;
 
                 // NOTE: need to update state variables, returning to CF mode
-                statevec = {0,0,0,0,1,1,1,1};
+                statevec[0] = 0;
+                statevec[1] = 0;
+                statevec[2] = 0;
+                statevec[3] = 0;
+                statevec[4] = 1;
+                statevec[5] = 1;
+                statevec[6] = 1;
+                statevec[7] = 1;
 
                 transmitCommand('0');
               }
@@ -296,7 +312,7 @@ void loop() {
                 transmitCommand('3');
 
                 Serial.println("Confirm firing igniter (Y/N)");
-                cmdign = getInput();
+                char cmdign = getInput();
                 if(cmdign == 'N'){
                   transmitCommand('N');
                   currentHFState = 2;
@@ -325,7 +341,7 @@ void loop() {
 
                 Serial.println("Confirm firing igniter (Y/N)");
 
-                cmdfire = getInput();
+                char cmdfire = getInput();
                 if(cmdfire == 'N'){
                   transmitCommand('N');
                   currentHFState = 3;
@@ -339,7 +355,7 @@ void loop() {
                   Serial.println("5) Return to CF. MBVs may need time to close before opening vents.");
                 }
               }
-              else if(cmd == 0'){
+              else if(cmd == '0'){
                 // go from state 3 to state 0
 
                 // exit hotfire mode
@@ -350,7 +366,14 @@ void loop() {
                 currentHFState = 0;
 
                 // NOTE: need to update state variables, returning to CF mode
-                statevec = {0,0,0,0,1,1,1,1};
+                statevec[0] = 0;
+                statevec[1] = 0;
+                statevec[2] = 0;
+                statevec[3] = 0;
+                statevec[4] = 1;
+                statevec[5] = 1;
+                statevec[6] = 1;
+                statevec[7] = 1;
 
                 transmitCommand('0');
               }
@@ -380,7 +403,15 @@ void loop() {
                 hotfireMode = 0;
                 currentHFState = 0;
                 // NOTE: Update state vars before going back to CF
-                statevec = {0,0,0,0,1,1,0,0};
+                statevec[0] = 0;
+                statevec[1] = 0;
+                statevec[2] = 0;
+                statevec[3] = 0;
+                statevec[4] = 0;
+                statevec[5] = 0;
+                statevec[6] = 0;
+                statevec[7] = 0;
+                
                 transmitCommand('5');
               }
               else{
@@ -392,8 +423,8 @@ void loop() {
               invalidInput();
             }
             
-        }
-        else if(cmd == 'Z'){
+          }
+          else if(cmd == 'Z'){
             // Check if HFS2
             // If yes-> bleed func 
             // If not say bleed is not avalible in outside of HFS2
@@ -403,9 +434,10 @@ void loop() {
             else{
               Serial.println("LOX tank bleed is not available outside of HFS2");
             }
+          }
+          else {
+            invalidInput();
+          }
         }
-        else {
-          invalidInput();
-        }
-  }
+}
 }
