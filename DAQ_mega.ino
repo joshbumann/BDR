@@ -29,9 +29,8 @@ inline void set485Talk() {            // RE=HIGH, DE=HIGH
 
 // Define analog pins for pressure sensors
 
-const int PT_pin7 = A6;
-
-const int PT_pin6 = A5;
+//const int PT_pin7 = A6;
+//const int PT_pin6 = A5;
 const int PT_pin5 = A4;
 const int PT_pin4 = A3;
 const int PT_pin3 = A2;
@@ -52,8 +51,8 @@ float calFactor2 = 6050;
 float calFactor3 = 7300;
 
 // initialize voltage values for speed
-float PT_read7 = 0;
-float PT_read6 = 0;
+//float PT_read7 = 0;
+//float PT_read6 = 0;
 float PT_read5 = 0;
 float PT_read4 = 0;
 float PT_read3 = 0;
@@ -72,8 +71,8 @@ void setup() {
   set485Listen();              // idle in listen
   RS485Serial.begin(9600);
 
-  pinMode(PT_pin7, INPUT);
-  pinMode(PT_pin6, INPUT);
+  //pinMode(PT_pin7, INPUT);
+  //pinMode(PT_pin6, INPUT);
   pinMode(PT_pin5, INPUT);
   pinMode(PT_pin4, INPUT);
   pinMode(PT_pin3, INPUT);
@@ -107,8 +106,8 @@ void loop() {
 
   String dataString = "<";
 
-  PT_read7 = analogRead(PT_pin7);
-  PT_read6 = analogRead(PT_pin6);
+  //PT_read7 = analogRead(PT_pin7);
+  //PT_read6 = analogRead(PT_pin6);
   PT_read5 = analogRead(PT_pin5);
   PT_read4 = analogRead(PT_pin4);
   PT_read3 = analogRead(PT_pin3);
@@ -131,10 +130,10 @@ void loop() {
   dataString += ",";
   dataString += String(PT_read5, 4);
   dataString += ",";
-  dataString += String(PT_read6, 4);
-  dataString += ",";
-  dataString += String(PT_read7, 4);
-  dataString += ",";
+  //dataString += String(PT_read6, 4);
+  //dataString += ",";
+  //dataString += String(PT_read7, 4);
+  //dataString += ",";
   dataString += String(Force1, 4);
   dataString += ",";
   dataString += String(Force2, 4);
