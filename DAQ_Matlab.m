@@ -34,7 +34,7 @@ nexttile(4);
 nexttile(5);
 nexttile(6);
 nexttile(7);
-
+nexttile(8);
 
 s1 = 0;
 s2 = 0;
@@ -82,12 +82,12 @@ while true
                 Pt_volt3 = dataMatrix(3); 
                 Pt_volt4 = dataMatrix(4); 
                 Pt_volt5 = dataMatrix(5); 
-                Pt_volt6 = dataMatrix(6); 
-                Pt_volt7 = dataMatrix(7); 
+                %Pt_volt6 = dataMatrix(6); Added back in the future
+                %Pt_volt7 = dataMatrix(7); 
 
-                Load1 = dataMatrix(8);
-                Load2 = dataMatrix(9);
-                Load3 = dataMatrix(10);
+                Load1 = dataMatrix(6);
+                Load2 = dataMatrix(7);
+                Load3 = dataMatrix(8);
             
             
                 %% Calibrate pressure
@@ -116,6 +116,7 @@ while true
                 elseif (Pt_volt5 >= 500)
                     pressure5 = Pt_volt5 * 0.45402951 - 61.03072035;
                 end
+                %{
                 if (Pt_volt6 < 500)
                     pressure6 = Pt_volt6 * 0.48256229 - 61.43046801;   
                 elseif (Pt_volt6 >= 500)
@@ -126,6 +127,7 @@ while true
                 elseif (Pt_volt7 >= 500)
                     pressure2 = Pt_volt7 * 0.45402951 - 61.03072035;
                 end
+                %}
             
             
             
