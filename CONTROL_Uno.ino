@@ -11,6 +11,8 @@ SoftwareSerial RS485Serial(RS485_RO_PIN, RS485_DI_PIN); // rx, tx
 bool hotfireMode = 0;
 bool statevec[8] = {0,0,0,0,0,0,0,0};
 int currentHFState = 0; // Track which sequences have been triggered (1-5)
+bool ignFired = 0;
+bool engFired = 0;
 
 inline void set485Listen() {   // Receive mode: RE=LOW, DE=LOW
   digitalWrite(RS485_RE_PIN, LOW);
@@ -150,7 +152,6 @@ void loop() {
           // Transmitted input
           if(cmd >= 'A' && cmd <= 'M' && hotfireMode == 0){
             transmitCommand(cmd);
-
 
             switch(cmd){   // Keep track of states
               case 'A':
@@ -310,119 +311,126 @@ void loop() {
                 // go from state 2 to state 3
                 currentHFState = 3;
                 transmitCommand('3');
-
-                Serial.println("Confirm firing igniter (Y/N)");
-                char cmdign = getInput();
-                if(cmdign == 'N'){
-                  transmitCommand('N');
-                  currentHFState = 2;
-                  
-                }
-                else if(cmdign == 'Y'){
-                  transmitCommand('Y');
-                  Serial.println("Available inputs:");
-                  Serial.println("0) Hard abort");
-                  Serial.println("2) Return to HFS2");
-                  Serial.println("4) Fire engine  (requires confirmation)"); // () bug?
-                }
               }
               else{
                 invalidInput();
               }
             }
             else if(hotfireMode == 1 && currentHFState == 3){ // Handle HFS 3 (Cant go back from here)
-              if(cmd == '4'){
-                // currentHFState = 4
-                // transmit 4 to the mega
-                
-                
-                currentHFState = 4;
-                transmitCommand('4');
-
+              if(ignFired == 0){
                 Serial.println("Confirm firing igniter (Y/N)");
-
-                char cmdfire = getInput();
-                if(cmdfire == 'N'){
+                if(cmd == 'N'){
                   transmitCommand('N');
-                  currentHFState = 3;
+                  currentHFState = 2;
                 }
-                else if(cmdfire == 'Y'){
+                else if(cmd == 'Y'){
                   transmitCommand('Y');
-                  Serial.println("Locked out of controls for 8 seconds.");
-                  Serial.println("Firing engine");
-                  delay(8000);
                   Serial.println("Available inputs:");
-                  Serial.println("5) Return to CF. MBVs may need time to close before opening vents.");
+                  Serial.println("0) Hard abort");
+                  Serial.println("2) Return to HFS2");
+                  Serial.println("4) Open MPVs  (requires confirmation)");
+                  ignFired = 1;
                 }
               }
-              else if(cmd == '0'){
-                // go from state 3 to state 0
+              else if(ignFired == 1){
+                if(cmd == '4'){
+                    // currentHFState = 4
+                    // transmit 4 to the mega
+                    currentHFState = 4;
+                    transmitCommand('4');
+                }
+                else if(cmd == '0'){
+                  // go from state 3 to state 0
 
-                // exit hotfire mode
-                // currentHFState = 0
-                // transmit 0 to the mega
-                
-                hotfireMode = 0;
-                currentHFState = 0;
+                  // exit hotfire mode
+                  // currentHFState = 0
+                  // transmit 0 to the mega
+                  
+                  hotfireMode = 0;
+                  currentHFState = 0;
 
-                // NOTE: need to update state variables, returning to CF mode
-                statevec[0] = 0;
-                statevec[1] = 0;
-                statevec[2] = 0;
-                statevec[3] = 0;
-                statevec[4] = 1;
-                statevec[5] = 1;
-                statevec[6] = 1;
-                statevec[7] = 1;
+                  // NOTE: need to update state variables, returning to CF mode
+                  statevec[0] = 0;
+                  statevec[1] = 0;
+                  statevec[2] = 0;
+                  statevec[3] = 0;
+                  statevec[4] = 1;
+                  statevec[5] = 1;
+                  statevec[6] = 1;
+                  statevec[7] = 1;
 
-                transmitCommand('0');
+                  ignFired = 0;
+
+                  transmitCommand('0');
+                }
+                else if(cmd == '2'){
+                  currentHFState = 2;
+                  ignFired = 0;
+                  transmitCommand('2');
+
+                  Serial.println("HFS2");
+                  Serial.println("Available inputs:");
+                  Serial.println("0) HARD ABORT");
+                  Serial.println("1) HFS1: Depressurize tanks (Soft abort)");
+                  Serial.println("3) HFS3: Fire igniter (Requires confirmation)");
+                  Serial.println("Z) Manual LOX tank bleed");
+                }
+                else{
+                  invalidInput();
+                }
+              
               }
-              else if(cmd == '2'){
-                currentHFState = 2;
-                transmitCommand('2');
-
-                Serial.println("HFS2");
-                Serial.println("Available inputs:");
-                Serial.println("0) HARD ABORT");
-                Serial.println("1) HFS1: Depressurize tanks (Soft abort)");
-                Serial.println("3) HFS3: Fire igniter (Requires confirmation)");
-                Serial.println("Z) Manual LOX tank bleed");
-              }
-              else{
-                invalidInput();
-              }
-
             }
             else if(hotfireMode == 1 && currentHFState == 4){ // Handle HFS 4
-              if(cmd == '5'){
+              if(engFired == 0){
+                Serial.println("Confirm MPV opening (Y/N)");
+                if(cmd == 'N'){
+                    transmitCommand('N');
+                    currentHFState = 3;
+                  }
+                else if(cmd == 'Y'){
+                    engFired = 1;
+                    transmitCommand('Y');
+                    Serial.println("Locked out of controls for 8 seconds.");
+                    Serial.println("Firing engine");
+                    delay(8000);
+                    Serial.println("Available inputs:");
+                    Serial.println("5) Return to CF. MBVs may need time to close before opening vents.");
+                  }
+              }
+              else if(engFired == 1)
+              {
+                if(cmd == '5'){
 
-                // hotfireMode off
-                // currentHFState = 0
-                // transmit 5 to the mega
-                
-                hotfireMode = 0;
-                currentHFState = 0;
-                // NOTE: Update state vars before going back to CF
-                statevec[0] = 0;
-                statevec[1] = 0;
-                statevec[2] = 0;
-                statevec[3] = 0;
-                statevec[4] = 0;
-                statevec[5] = 0;
-                statevec[6] = 0;
-                statevec[7] = 0;
-                
-                transmitCommand('5');
+                  // hotfireMode off
+                  // currentHFState = 0
+                  // transmit 5 to the mega
+                  
+                  hotfireMode = 0;
+                  currentHFState = 0;
+                  // NOTE: Update state vars before going back to CF
+                  statevec[0] = 0;
+                  statevec[1] = 0;
+                  statevec[2] = 0;
+                  statevec[3] = 0;
+                  statevec[4] = 0;
+                  statevec[5] = 0;
+                  statevec[6] = 0;
+                  statevec[7] = 0;
+
+                  ignFired = 0;
+                  engFired = 0;
+                  
+                  transmitCommand('5');
+                }
+                else{
+                  invalidInput();
+                }
               }
-              else{
-                invalidInput();
-              }
-              
             }
             else{
               invalidInput();
             }
-            
           }
           else if(cmd == 'Z'){
             // Check if HFS2
