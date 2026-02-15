@@ -126,7 +126,7 @@ int delay_closeMBVs = 15000;          // Same as above, but in case closing take
 int delay_toggleVents = 0;        // This delay will go between opening and closing the vents. Just needs to be the amount of time to depressurize.
 
 int delay_MFV_MOV = 0;            // This is the delay between opening the main valves. We want the liquids to enter the injector at the same time, and this takes into account that the fuel needs to travel through the regen channels.
-int delay_igniter = 0;            // Delay between igniter firing and the main propellant valves opening.
+//int delay_igniter = 0;            // Delay between igniter firing and the main propellant valves opening.
 
 int delay_Bleed = 20;
 int delay_closeMVs_openPurge = 0;       // Delay between closing the main valves and opening the the purge and vent lines
@@ -198,6 +198,7 @@ void HF3toHF4(){ // executes after Y command
 void HF4toHF5(){
   // No functionality right now. Leave function here in case we need it later.
   // End of test. Returns to coldflow state
+  digitalWrite(igniterPin,LOW);
 }
 void HF1toHF0(){
   // Does nothing
@@ -241,9 +242,13 @@ void HF3toHF0(){
   // Open purge
   openValve(32);
   openValve(33);
+
+  digitalWrite(igniterPin, LOW);
+  igniterFired = 0;
 }
 void HF3toHF2(){
- // No functionality required currently
+ digitalWrite(igniterPin, LOW);
+ igniterFired = 0;
 }
 void bleedLoxPress(){
   openValve(31);
