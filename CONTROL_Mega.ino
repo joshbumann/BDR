@@ -50,19 +50,18 @@ inline void toggleRelay(uint8_t idx) { setRelay(idx, !relayState[idx]); }
 
 // Turn a specific valve ON (FIX LATER: This turns the relay on. openValve on a vent will close it)
 void openValve(int valveIndex) {
-  
-  if(valveIndex == 30 || valveIndex == 31) // Meant to handle the vents being normaly open
+  if(valveIndex == 30 || valveIndex == 31 || valveIndex == 32 || valveIndex == 33) // Meant to handle the vents being normaly open
   {
     digitalWrite(valveIndex, LOW);
   }
-  else if(valveIndex >= 26 && valveIndex <= 33) {
+  else if(valveIndex >= 26 && valveIndex <= 33){
     digitalWrite(valveIndex, HIGH);
   }
 }
 
 // Turn a specific valve OFF (FIX LATER: This turns the relay off. closeValve on a vent will open it)
 void closeValve(int valveIndex) {
-  if(valveIndex == 30 || valveIndex == 31) // Meant to handle the vents being normaly open
+  if(valveIndex == 30 || valveIndex == 31 || valveIndex == 32 || valveIndex == 33) // Meant to handle the vents being normaly open
   {
     digitalWrite(valveIndex, HIGH);
   }
@@ -79,8 +78,8 @@ void closeAllValves() {
     digitalWrite(pneuvalve2pin, LOW);
     digitalWrite(pneuvalve3pin, HIGH); // Vents must be high to be closed
     digitalWrite(pneuvalve4pin, HIGH); //
-    digitalWrite(pneuvalve5pin, LOW);
-    digitalWrite(pneuvalve6pin, LOW);
+    digitalWrite(pneuvalve5pin, HIGH); // Purge too
+    digitalWrite(pneuvalve6pin, HIGH);
 }
 
 
@@ -103,12 +102,13 @@ void setup() {
 
   RS485Serial.begin(9600);
   // Make sure all pnumatic valves start OFF
-  for (uint8_t i = 0; i < 8; ++i) {
+  for (uint8_t i = 0; i < 6; ++i) {
     pinMode(RELAY_PINS[i], OUTPUT);
     setRelay(i, false);
   }
-  
-  
+  setRelay(6, true);
+  setRelay(7, true);
+
 }
 
 
@@ -128,7 +128,7 @@ int delay_toggleVents = 0;        // This delay will go between opening and clos
 int delay_MFV_MOV = 0;            // This is the delay between opening the main valves. We want the liquids to enter the injector at the same time, and this takes into account that the fuel needs to travel through the regen channels.
 //int delay_igniter = 0;            // Delay between igniter firing and the main propellant valves opening.
 
-int delay_Bleed = 20;
+int delay_Bleed = 250;
 int delay_closeMVs_openPurge = 0;       // Delay between closing the main valves and opening the the purge and vent lines
 int delay_purgeEnd = 5000;              // How long the purge is open to confirm shutdown
 int delay_closePurge_closeVents = 0;    // Short delay between closing the purge and vents so everything the the purge lines can escape
