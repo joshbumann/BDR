@@ -85,30 +85,20 @@ while true
             
             
                 %% Calibrate pressure
-                if (Pt_volt1 < 500)
-                    pressure1 = Pt_volt1 * 0.48256229 - 61.43046801;
-                elseif (Pt_volt1 >= 500)
-                    pressure1 = Pt_volt1 * 0.45402951 - 61.03072035;
+                if (Pt_volt1)
+                    pressure1 = Pt_volt1 * 0.872 - 109;
                 end
-                if (Pt_volt2 < 500)
-                    pressure2 = Pt_volt2 * 0.48256229 - 61.43046801;   
-                elseif (Pt_volt2 >= 500)
-                    pressure2 = Pt_volt2 * 0.45402951 - 61.03072035;
+                if (Pt_volt2)
+                    pressure2 = Pt_volt2 * 0.872 - 109;
                 end
-                if (Pt_volt3 < 500)
-                    pressure3 = Pt_volt3 * 0.48256229 - 61.43046801;   
-                elseif (Pt_volt3 >= 500)
-                    pressure3 = Pt_volt3 * 0.45402951 - 61.03072035;
+                if (Pt_volt3)
+                    pressure3 = Pt_volt3 * 0.872 - 109;
                 end
-                if (Pt_volt4 < 500)
-                    pressure4 = Pt_volt4 * 0.48256229 - 61.43046801;   
-                elseif (Pt_volt4 >= 500)
-                    pressure4 = Pt_volt4 * 0.45402951 - 61.03072035;
+                if (Pt_volt4)
+                    pressure4 = Pt_volt4 * 0.872 - 109;
                 end
-                if (Pt_volt5 < 500)
-                    pressure5 = Pt_volt5 * 0.48256229 - 61.43046801;   
-                elseif (Pt_volt5 >= 500)
-                    pressure5 = Pt_volt5 * 0.45402951 - 61.03072035;
+                if (Pt_volt5)
+                    pressure5 = Pt_volt5 * 0.872 - 109;
                 end
                 %{
                 if (Pt_volt6 < 500)
