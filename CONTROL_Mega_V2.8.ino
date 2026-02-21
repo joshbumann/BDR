@@ -145,17 +145,14 @@ void HF0toHF1(){
   closeValve(29);
   openValve(30); // Vents
   openValve(31);
-  openValve(32); // purge
-  openValve(33);
+  closeValve(32); // purge
+  closeValve(33);
 }
 void HF1toHF2(){
   // Close vents
   closeValve(30);
   closeValve(31);
 
-  // Close purge
-  closeValve(32);
-  closeValve(33);
 
   // Small delay to ensure vent close
   delay(delay_closevent_openMBVs);
