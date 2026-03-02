@@ -1,14 +1,19 @@
-clear
-clc
-close all
+% V2.9
+
+% Used on first hotfire
+
+
+clear;
+clc;
+close all;
 
 
 
 %% Set up arduino
 
-port = '/dev/cu.usbmodem1301'; % which port you're connected to
+port = 'COM5'; % which port you're connected to
 pause(2)
-%board = 'Uno'; % the kind of board you're using?
+%board = 'UnoD'; % the kind of board you're using?
 
 %a = arduino(port, board);
 
@@ -34,7 +39,7 @@ nexttile(4);
 nexttile(5);
 nexttile(6);
 nexttile(7);
-
+nexttile(8);
 
 s1 = 0;
 s2 = 0;
@@ -59,8 +64,6 @@ while true
         % Read the entire data packet until the '>' terminator
         dataString = readline(uno); 
         flush(uno);
-     
-        
 
         if startsWith(dataString, '<')
 
@@ -74,7 +77,7 @@ while true
             % Convert the string array to a numerical matrix (1x7)
             dataMatrix = str2double(pressureStrings)';
     
-            if length(dataMatrix) == 10
+            if length(dataMatrix) >= 8
                 %% Sort data
             
                 Pt_volt1 = dataMatrix(1); 
@@ -82,12 +85,12 @@ while true
                 Pt_volt3 = dataMatrix(3); 
                 Pt_volt4 = dataMatrix(4); 
                 Pt_volt5 = dataMatrix(5); 
-                Pt_volt6 = dataMatrix(6); 
-                Pt_volt7 = dataMatrix(7); 
+                %Pt_volt6 = dataMatrix(6); Added back in the future
+                %Pt_volt7 = dataMatrix(7); 
 
-                Load1 = dataMatrix(8);
-                Load2 = dataMatrix(9);
-                Load3 = dataMatrix(10);
+                Load1 = dataMatrix(6);
+                Load2 = dataMatrix(7);
+                Load3 = dataMatrix(8);
             
             
                 %% Calibrate pressure
@@ -106,16 +109,9 @@ while true
                 elseif (Pt_volt3 >= 500)
                     pressure3 = Pt_volt3 * 0.45402951 - 61.03072035;
                 end
-                if (Pt_volt4 < 500)
-                    pressure4 = Pt_volt4 * 0.48256229 - 61.43046801;   
-                elseif (Pt_volt4 >= 500)
-                    pressure4 = Pt_volt4 * 0.45402951 - 61.03072035;
-                end
-                if (Pt_volt5 < 500)
-                    pressure5 = Pt_volt5 * 0.48256229 - 61.43046801;   
-                elseif (Pt_volt5 >= 500)
-                    pressure5 = Pt_volt5 * 0.45402951 - 61.03072035;
-                end
+                pressure4 = Pt_volt4 * 0.872 - 109;
+                pressure5 = Pt_volt5 * 0.872 - 109;
+                %{
                 if (Pt_volt6 < 500)
                     pressure6 = Pt_volt6 * 0.48256229 - 61.43046801;   
                 elseif (Pt_volt6 >= 500)
@@ -126,6 +122,7 @@ while true
                 elseif (Pt_volt7 >= 500)
                     pressure2 = Pt_volt7 * 0.45402951 - 61.03072035;
                 end
+                %}
             
             
             
@@ -220,7 +217,7 @@ while true
                 xlabel('Time')
                 ylabel("Load (lbf)")
                 grid on;
-            
+                
                 drawnow;
                 
                 data(i, 1) = pressure1;
@@ -235,6 +232,5 @@ while true
                 i = i + 1;
 
             end
-
         end
  end
