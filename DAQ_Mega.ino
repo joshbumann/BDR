@@ -1,6 +1,6 @@
-// V2.9
+// V2.10
 
-// Used on first hotfire
+// For second round of static fires
 
 #include <SoftwareSerial.h>
 #include <HX711.h>
@@ -66,14 +66,12 @@ String dataString = "null";
 
 void setup() {
 
-  Serial.begin(115200);
-
   pinMode(RS485_RE_PIN, OUTPUT);
   pinMode(RS485_DE_PIN, OUTPUT);
 
   // Initialize RS485 communication (SoftwareSerial)
   set485Listen();              // idle in listen
-  RS485Serial.begin(9600);
+  RS485Serial.begin(57600);
 
   //pinMode(PT_pin7, INPUT);
   //pinMode(PT_pin6, INPUT);
@@ -119,9 +117,9 @@ void loop() {
   PT_read1 = analogRead(PT_pin1);
 
 
-  float Force1 = loadcell1.get_units(3);
-  float Force2 = loadcell2.get_units(3);
-  float Force3 = loadcell3.get_units(3);
+  float Force1 = loadcell1.get_units(1);
+  float Force2 = loadcell2.get_units(1);
+  float Force3 = loadcell3.get_units(1);
 
 
   dataString += String(PT_read1, 4);
@@ -146,20 +144,15 @@ void loop() {
   dataString += ">"; // End delimiter
   dataString.trim();
 
-  for (int i = 0; i < dataString.length(); ++i) {
 
-    char cmd = dataString[i];
-
-    if (cmd) {
-      set485Talk();
-      RS485Serial.write(cmd);
-      RS485Serial.write('\n');
-      RS485Serial.flush();   // ensure bytes left TX buffer
-      delay(2);              // small guard at 9600 bps
-      set485Listen();
-    }
+  if (cmd) {
+    set485Talk();
+    RS485Serial.print(dataString);
+    RS485Serial.flush();   // ensure bytes left TX buffer
+    delay(2);              // small guard at 9600 bps
+    set485Listen();
   }
-  delay(150);
-
+  
+  delay(5); // Remove if not nessesary
 
 }
