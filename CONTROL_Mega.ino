@@ -20,21 +20,66 @@ const uint8_t RS485_RE_PIN = 12;  // RE pin of RS485
 
 // Relays on D26..D33
 const uint8_t RELAY_PINS[8] = {26,27,28,29,30,31,32,33};
-bool relayState[8] = {0,0,0,0,0,0,0,0};
+uint8_t relayMask = 0;
 bool sequenceTriggered[5] = {0,0,0,0,0}; // Track which sequences have been triggered (1-5)
+
+enum CommandCode : char {
+  CMD_FUEL_N2 = 'A',
+  CMD_LOX_N2 = 'B',
+  CMD_MAIN_FUEL = 'C',
+  CMD_MAIN_OX = 'D',
+  CMD_FUEL_VENT = 'E',
+  CMD_LOX_VENT = 'F',
+  CMD_FUEL_PURGE = 'G',
+  CMD_LOX_PURGE = 'H',
+  CMD_TOGGLE_MAIN = 'I',
+  CMD_TOGGLE_N2 = 'J',
+  CMD_TOGGLE_VENTS = 'K',
+  CMD_TOGGLE_PURGE = 'L',
+  CMD_CLOSE_ALL = 'M',
+  CMD_HARD_ABORT = '0',
+  CMD_ENTER_HOTFIRE = '1',
+  CMD_FIRE_IGNITER = '2',
+  CMD_OPEN_MAIN_PROPELLANTS = '3',
+  CMD_END_TEST = '4',
+  CMD_BLEED_LOX = 'Z',
+  CMD_SOFT_ABORT = 'S'
+};
+
+struct CommandOption {
+  char cmd;
+  const char* label;
+};
+
+const CommandOption commandMap[] = {
+  {CMD_FUEL_N2, "Fuel N2 Valve"},
+  {CMD_LOX_N2, "LOX N2 Valve"},
+  {CMD_MAIN_FUEL, "Main Fuel Valve"},
+  {CMD_MAIN_OX, "Main Oxidizer Valve"},
+  {CMD_FUEL_VENT, "Fuel Vent"},
+  {CMD_LOX_VENT, "LOX Vent"},
+  {CMD_FUEL_PURGE, "Fuel Purge"},
+  {CMD_LOX_PURGE, "LOX Purge"},
+  {CMD_TOGGLE_MAIN, "Toggle Main Valves"},
+  {CMD_TOGGLE_N2, "Toggle Motorized(N2) Valves"},
+  {CMD_TOGGLE_VENTS, "Toggle vent valves"},
+  {CMD_TOGGLE_PURGE, "Toggle purge valves"},
+  {CMD_CLOSE_ALL, "Close all valves"},
+  {CMD_ENTER_HOTFIRE, "Enter hotfire mode"}
+};
 
 const int NUM_VALVES = 8;
 
 const int igniterPin = 54;
 
-const int motorvalve1pin = 26;  // Fuel N2
-const int motorvalve2pin = 27;  // LOX N2
-const int pneuvalve1pin = 28;   // MFV
-const int pneuvalve2pin = 29;   // MOV
-const int pneuvalve3pin = 30;   // Fuel Vent
-const int pneuvalve4pin = 31;   // LOX Vent
-const int pneuvalve5pin = 32;   // Fuel Purge
-const int pneuvalve6pin = 33;   // LOX Purge
+const int Fuel_N2_Vlv_Pin = 26;  // Fuel N2
+const int LOX_N2_Vlv_Pin = 27;  // LOX N2
+const int MFV_VLv_Pin = 28;   // MFV
+const int MOV_Vlv_Pin = 29;   // MOV
+const int Fuel_Vent_Vlv_Pin = 30;   // Fuel Vent
+const int LOX_Vent_Vlv_Pin = 31;   // LOX Vent
+const int Fuel_Purge_Vlv_Pin = 32;   // Fuel Purge
+const int LOX_Purge_Vlv_Pin = 33;   // LOX Purge
 
 inline void set485Listen() {          // RE=LOW, DE=LOW
   digitalWrite(RS485_RE_PIN, LOW);
@@ -45,53 +90,61 @@ inline void set485Talk() {            // RE=HIGH, DE=HIGH
   digitalWrite(RS485_DE_PIN, HIGH);
 }
 
-inline void setRelay(uint8_t idx, bool on) {
-  relayState[idx] = on;
+inline void setRelayState(uint8_t idx, bool on) {
+  if (on) {
+    relayMask |= (1u << idx);
+  } else {
+    relayMask &= ~(1u << idx);
+  }
+
   uint8_t lvl = ACTIVE_LOW ? (on ? LOW : HIGH) : (on ? HIGH : LOW);
   digitalWrite(RELAY_PINS[idx], lvl);
 }
-inline void toggleRelay(uint8_t idx) { setRelay(idx, !relayState[idx]); }
+inline bool getRelayState(uint8_t idx) {
+  return (relayMask & (1u << idx)) != 0;
+}
+inline void toggleRelay(uint8_t idx) { setRelayState(idx, !getRelayState(idx)); }
 
 // Turn a specific valve ON
 void openValve(int valveIndex) {
-  if(valveIndex >= 30 && valveIndex <= 33) // Meant to handle the vents being normaly open
-  {
+  if (valveIndex == Fuel_Vent_Vlv_Pin || valveIndex == LOX_Vent_Vlv_Pin || valveIndex == Fuel_Purge_Vlv_Pin || valveIndex == LOX_Purge_Vlv_Pin) {
+    // For vent and purge valves, HIGH means closed, LOW means open
     digitalWrite(valveIndex, LOW);
-  }
-  else if(valveIndex >= 26 && valveIndex <= 29){
+  } else {
+    // For other valves, HIGH means open, LOW means closed
     digitalWrite(valveIndex, HIGH);
   }
 }
 
 // Turn a specific valve OFF
 void closeValve(int valveIndex) {
-  if(valveIndex >= 30 && valveIndex <= 33) // Meant to handle the vents being normaly open
-  {
+  if (valveIndex == Fuel_Vent_Vlv_Pin || valveIndex == LOX_Vent_Vlv_Pin || valveIndex == Fuel_Purge_Vlv_Pin || valveIndex == LOX_Purge_Vlv_Pin) {
+    // For vent and purge valves, HIGH means closed, LOW means open
     digitalWrite(valveIndex, HIGH);
-  }
-  else if(valveIndex >= 26 && valveIndex <= 29) {
+  } else {
+    // For other valves, HIGH means open, LOW means closed
     digitalWrite(valveIndex, LOW);
   }
 }
 
 // All valves close
 void closeAllValves() {
-    digitalWrite(motorvalve1pin, LOW);
-    digitalWrite(motorvalve2pin, LOW);
-    digitalWrite(pneuvalve1pin, LOW);
-    digitalWrite(pneuvalve2pin, LOW);
-    digitalWrite(pneuvalve3pin, HIGH); // Vents must be high to be closed
-    digitalWrite(pneuvalve4pin, HIGH); //
-    digitalWrite(pneuvalve5pin, HIGH); // Purge too
-    digitalWrite(pneuvalve6pin, HIGH);
+    relayMask = 0;
+    digitalWrite(Fuel_N2_Vlv_Pin, LOW);
+    digitalWrite(LOX_N2_Vlv_Pin, LOW);
+    digitalWrite(MFV_VLv_Pin, LOW);
+    digitalWrite(MOV_Vlv_Pin, LOW);
+    digitalWrite(Fuel_Vent_Vlv_Pin, HIGH); // Vents must be high to be closed
+    digitalWrite(LOX_Vent_Vlv_Pin, HIGH); //
+    digitalWrite(Fuel_Purge_Vlv_Pin, HIGH); // Purge too
+    digitalWrite(LOX_Purge_Vlv_Pin, HIGH);
 }
-
 
 // Toggle valve from current state
 void toggleValve(int valveIndex) {
   if (valveIndex >= 26 && valveIndex <= 33) {
-    int currentState = digitalRead(valveIndex);
-    digitalWrite(valveIndex, !currentState);
+    uint8_t idx = (uint8_t)(valveIndex - 26);
+    setRelayState(idx, !getRelayState(idx));
   }
 }
 
@@ -122,19 +175,19 @@ void HF0toHF1(){
   // Tank press
 
   // Close vents, purge, and MPVs
-  closeValve(28); // MPVs
-  closeValve(29);
-  closeValve(30); // Vents
-  closeValve(31);
-  closeValve(32); // Purge
-  closeValve(33);
+  closeValve(MFV_VLv_Pin); // MPVs
+  closeValve(MOV_Vlv_Pin);
+  closeValve(Fuel_Vent_Vlv_Pin); // Vents
+  closeValve(LOX_Vent_Vlv_Pin);
+  closeValve(Fuel_Purge_Vlv_Pin); // Purge
+  closeValve(LOX_Purge_Vlv_Pin);
 
   // Small delay to ensure vent close
   delay(delay_closevent_openMBVs);
 
   // Open MBVs
-  openValve(26);
-  openValve(27);
+  openValve(Fuel_N2_Vlv_Pin);
+  openValve(LOX_N2_Vlv_Pin);
   // The MBVs being fully open is up to the user to determine
 }
 void HF1toHF2(){
@@ -143,9 +196,9 @@ void HF1toHF2(){
 }
 void HF2toHF3(){
   // Open main prop valves, w/ delay for regen channels
-  openValve(28);
+  openValve(MFV_VLv_Pin);
   delay(delay_MFV_MOV);
-  openValve(29);
+  openValve(MOV_Vlv_Pin);
 
   // Write low to igniter pin
   digitalWrite(igniterPin,LOW);
@@ -154,40 +207,40 @@ void HF3toHF4(){
   // End test
 
   // Open purge
-  openValve(32);
-  openValve(33);
+  openValve(Fuel_Purge_Vlv_Pin);
+  openValve(LOX_Purge_Vlv_Pin);
 
   // Close MPVs 
-  closeValve(28);
-  closeValve(29);
+  closeValve(MFV_VLv_Pin);
+  closeValve(MOV_Vlv_Pin);
 }
 void HF1toHF0(){
   // Hard abort: Close MBVs, open purge, and open vent simultaneously
   // Close MBVs
-  closeValve(26);
-  closeValve(27);
+  closeValve(Fuel_N2_Vlv_Pin);
+  closeValve(LOX_N2_Vlv_Pin);
 
   // Open vents
-  openValve(30);
-  openValve(31);
+  openValve(Fuel_Vent_Vlv_Pin);
+  openValve(LOX_Vent_Vlv_Pin);
 
   // Open purge
-  openValve(32);
-  openValve(33);
+  openValve(Fuel_Purge_Vlv_Pin);
+  openValve(LOX_Purge_Vlv_Pin);
 }
 void HF2toHF0(){
   // Hard abort: Close MBVs, open purge, and open vent simultaneously
   // Close MBVs
-  closeValve(26);
-  closeValve(27);
+  closeValve(Fuel_N2_Vlv_Pin);
+  closeValve(LOX_N2_Vlv_Pin);
 
   // Open vents
-  openValve(30);
-  openValve(31);
+  openValve(Fuel_Vent_Vlv_Pin);
+  openValve(LOX_Vent_Vlv_Pin);
 
   // Open purge
-  openValve(32);
-  openValve(33);
+  openValve(Fuel_Purge_Vlv_Pin);
+  openValve(LOX_Purge_Vlv_Pin);
 
   // Write low to igniter pin
   digitalWrite(igniterPin,LOW);
@@ -197,9 +250,9 @@ void HF2toHF1(){
   digitalWrite(igniterPin,LOW);
 }
 void bleedLoxPress(){
-  openValve(31);
+  openValve(LOX_Vent_Vlv_Pin);
   delay(delay_Bleed);
-  closeValve(31);
+  closeValve(LOX_Vent_Vlv_Pin);
 }
 void softAbort(){
   // Change nothing, leave up to CF
@@ -238,49 +291,49 @@ void loop() {
           char cmd = command[0];
           
           // Sort input
-          if(cmd >= 'A' && cmd <= 'M' && currentHFstate == 0 ){
+          if(cmd >= CMD_FUEL_N2 && cmd <= CMD_CLOSE_ALL && currentHFstate == 0 ){
             switch (cmd) {
-              case 'A':
-                toggleValve(motorvalve1pin);
+              case CMD_FUEL_N2:
+                toggleValve(Fuel_N2_Vlv_Pin);
                 break;
-              case 'B':
-                toggleValve(motorvalve2pin);
+              case CMD_LOX_N2:
+                toggleValve(LOX_N2_Vlv_Pin);
                 break;
-              case 'C':
-                toggleValve(pneuvalve1pin);
+              case CMD_MAIN_FUEL:
+                toggleValve(MFV_VLv_Pin);
                 break;
-              case 'D':
-                toggleValve(pneuvalve2pin);
+              case CMD_MAIN_OX:
+                toggleValve(MOV_Vlv_Pin);
                 break;
-              case 'E':
-                toggleValve(pneuvalve3pin);
+              case CMD_FUEL_VENT:
+                toggleValve(Fuel_Vent_Vlv_Pin);
                 break;
-              case 'F':
-                toggleValve(pneuvalve4pin);
+              case CMD_LOX_VENT:
+                toggleValve(LOX_Vent_Vlv_Pin);
                 break;
-              case 'G':
-                toggleValve(pneuvalve5pin);
+              case CMD_FUEL_PURGE:
+                toggleValve(Fuel_Purge_Vlv_Pin);
                 break;
-              case 'H':
-                toggleValve(pneuvalve6pin);
+              case CMD_LOX_PURGE:
+                toggleValve(LOX_Purge_Vlv_Pin);
                 break;
-              case 'I':
-                toggleValve(pneuvalve1pin); // MFV
-                toggleValve(pneuvalve2pin); // MOV
+              case CMD_TOGGLE_MAIN:
+                toggleValve(MFV_VLv_Pin); // MFV
+                toggleValve(MOV_Vlv_Pin); // MOV
                 break;
-              case 'J':
-                toggleValve(motorvalve1pin); // N2 valves
-                toggleValve(motorvalve2pin);
+              case CMD_TOGGLE_N2:
+                toggleValve(Fuel_N2_Vlv_Pin); // N2 valves
+                toggleValve(LOX_N2_Vlv_Pin);
                 break;
-              case 'K':
-                toggleValve(pneuvalve3pin); // Vent valves
-                toggleValve(pneuvalve4pin);
+              case CMD_TOGGLE_VENTS:
+                toggleValve(Fuel_Vent_Vlv_Pin); // Vent valves
+                toggleValve(LOX_Vent_Vlv_Pin);
                 break;
-              case 'L':
-                toggleValve(pneuvalve5pin); // Purge valves
-                toggleValve(pneuvalve6pin);
+              case CMD_TOGGLE_PURGE:
+                toggleValve(Fuel_Purge_Vlv_Pin); // Purge valves
+                toggleValve(LOX_Purge_Vlv_Pin);
                 break;
-              case 'M':
+              case CMD_CLOSE_ALL:
                 closeAllValves();
                 break;
               default:
@@ -288,46 +341,46 @@ void loop() {
               break;
             }
           }
-          else if(currentHFstate == 0 && cmd == '1'){
+          else if(currentHFstate == 0 && cmd == CMD_ENTER_HOTFIRE){
             // Enter HF mode
             HF0toHF1();
             currentHFstate = 1;
           }
           else if(currentHFstate == 1){
-            if(cmd == '0'){
+            if(cmd == CMD_HARD_ABORT){
               HF1toHF0();
               currentHFstate = 0;
             }
-            else if(cmd == '2'){
+            else if(cmd == CMD_FIRE_IGNITER){
               HF1toHF2();
               currentHFstate = 2;
               igniterFired = 1;
             }
-            else if(cmd == 'S'){
+            else if(cmd == CMD_SOFT_ABORT){
               softAbort();
               currentHFstate = 0;
             }
-            else if(cmd == 'Z'){
+            else if(cmd == CMD_BLEED_LOX){
               bleedLoxPress();
             }
           }
           else if(currentHFstate == 2){
-            if(cmd == '0'){
+            if(cmd == CMD_HARD_ABORT){
               HF2toHF0();
               currentHFstate = 0;
             }
-            else if(cmd == '1'){
+            else if(cmd == CMD_ENTER_HOTFIRE){
               HF2toHF1();
               currentHFstate = 1;
             }
-            else if(cmd == '3'){
+            else if(cmd == CMD_OPEN_MAIN_PROPELLANTS){
               HF2toHF3();
               currentHFstate = 3;
               engineFired = 1;
             }
           }
           else if(currentHFstate == 3){          
-            if(cmd == '4'){
+            if(cmd == CMD_END_TEST){
               HF3toHF4();
               currentHFstate = 0;
               // ends test
