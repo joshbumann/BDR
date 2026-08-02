@@ -1,6 +1,5 @@
-// V2.9
-
-// Used on first hotfire
+// V2.10
+// For second round of static fires
 
 
 // MEGA RECEIVER + RELAY ACTUATOR — RE LOW=listen, HIGH=talk
@@ -53,8 +52,7 @@ inline void setRelay(uint8_t idx, bool on) {
 }
 inline void toggleRelay(uint8_t idx) { setRelay(idx, !relayState[idx]); }
 
-
-// Turn a specific valve ON (FIX LATER: This turns the relay on. openValve on a vent will close it)
+// Turn a specific valve ON
 void openValve(int valveIndex) {
   if(valveIndex >= 30 && valveIndex <= 33) // Meant to handle the vents being normaly open
   {
@@ -65,7 +63,7 @@ void openValve(int valveIndex) {
   }
 }
 
-// Turn a specific valve OFF (FIX LATER: This turns the relay off. closeValve on a vent will open it)
+// Turn a specific valve OFF
 void closeValve(int valveIndex) {
   if(valveIndex >= 30 && valveIndex <= 33) // Meant to handle the vents being normaly open
   {
@@ -97,28 +95,6 @@ void toggleValve(int valveIndex) {
   }
 }
 
-
-void setup() {
-  // Initialize RS485 communication (SoftwareSerial)
-  //Serial.begin(115200);
-
-  pinMode(RS485_RE_PIN, OUTPUT);
-  pinMode(RS485_DE_PIN, OUTPUT);
-  set485Listen();                       // idle in listen
-
-  RS485Serial.begin(9600);
-  // Make sure all pnumatic valves start OFF
-  for (uint8_t i = 0; i < 8; ++i) {
-    pinMode(RELAY_PINS[i], OUTPUT);
-    setRelay(i, false);
-  }
- closeAllValves();
- pinMode(igniterPin, OUTPUT);
-
-}
-
-
-
 // HOTFIRE VARIABLES
 
 int currentHFstate = 0; // Keeps track of current state (0-5). 0 means coldflow mode.
@@ -133,7 +109,7 @@ int delay_toggleVents = 0;        // This delay will go between opening and clos
 int delay_MFV_MOV = 20;            // This is the delay between opening the main valves. We want the liquids to enter the injector at the same time, and this takes into account that the fuel needs to travel through the regen channels.
 //int delay_igniter = 0;            // Delay between igniter firing and the main propellant valves opening.
 
-int delay_Bleed = 250;
+int delay_Bleed = 1000;
 int delay_closeMVs_openPurge = 0;       // Delay between closing the main valves and opening the the purge and vent lines
 int delay_purgeEnd = 5000;              // How long the purge is open to confirm shutdown
 int delay_closePurge_closeVents = 0;    // Short delay between closing the purge and vents so everything the the purge lines can escape
@@ -143,21 +119,15 @@ int delay_closePurge_closeVents = 0;    // Short delay between closing the purge
 // HOTFIRE FUNCTIONS
 
 void HF0toHF1(){
-  // Default pos
-  closeValve(26);
-  closeValve(27);
-  closeValve(28);
+  // Tank press
+
+  // Close vents, purge, and MPVs
+  closeValve(28); // MPVs
   closeValve(29);
   closeValve(30); // Vents
   closeValve(31);
-  closeValve(32);
+  closeValve(32); // Purge
   closeValve(33);
-}
-void HF1toHF2(){
-  // Close vents
-  closeValve(30);
-  closeValve(31);
-
 
   // Small delay to ensure vent close
   delay(delay_closevent_openMBVs);
@@ -167,12 +137,11 @@ void HF1toHF2(){
   openValve(27);
   // The MBVs being fully open is up to the user to determine
 }
-void HF2toHF3(){
+void HF1toHF2(){
   // Fire igniter
   digitalWrite(igniterPin, HIGH);
 }
-void HF3toHF4(){
-  
+void HF2toHF3(){
   // Open main prop valves, w/ delay for regen channels
   openValve(28);
   delay(delay_MFV_MOV);
@@ -181,9 +150,8 @@ void HF3toHF4(){
   // Write low to igniter pin
   digitalWrite(igniterPin,LOW);
 }
-void HF4toHF5(){
+void HF3toHF4(){
   // End test
-
 
   // Open purge
   openValve(32);
@@ -192,14 +160,23 @@ void HF4toHF5(){
   // Close MPVs 
   closeValve(28);
   closeValve(29);
-
 }
 void HF1toHF0(){
-  // Does nothing
-  // Leave in code for now incase we decide to do something with it
+  // Hard abort: Close MBVs, open purge, and open vent simultaneously
+  // Close MBVs
+  closeValve(26);
+  closeValve(27);
+
+  // Open vents
+  openValve(30);
+  openValve(31);
+
+  // Open purge
+  openValve(32);
+  openValve(33);
 }
 void HF2toHF0(){
-  // Emergency abort: Close MBVs, open purge, and open vent simultaneously
+  // Hard abort: Close MBVs, open purge, and open vent simultaneously
   // Close MBVs
   closeValve(26);
   closeValve(27);
@@ -211,45 +188,41 @@ void HF2toHF0(){
   // Open purge
   openValve(32);
   openValve(33);
+
+  // Write low to igniter pin
+  digitalWrite(igniterPin,LOW);
 }
 void HF2toHF1(){
-  // Close MBVs, wait for full close, then open vents
-  closeValve(26);
-  closeValve(27);
-
-  delay(delay_closeMBVs);
-
-  // Open vents
-  openValve(30);
-  openValve(31);
-}
-void HF3toHF0(){
-  // Emergency abort: Close MBVs, open purge, and open vent simultaneously
-  // Close MBVs
-  closeValve(26);
-  closeValve(27);
-
-  // Open vents
-  openValve(30);
-  openValve(31);
-
-  // Open purge
-  openValve(32);
-  openValve(33);
-
-  digitalWrite(igniterPin, LOW);
-  igniterFired = 0;
-}
-void HF3toHF2(){
- digitalWrite(igniterPin, LOW);
- igniterFired = 0;
+  // Write low to igniter pin
+  digitalWrite(igniterPin,LOW);
 }
 void bleedLoxPress(){
   openValve(31);
   delay(delay_Bleed);
   closeValve(31);
 }
+void softAbort(){
+  // Change nothing, leave up to CF
+}
 
+void setup() {
+  // Initialize RS485 communication (SoftwareSerial)
+  //Serial.begin(115200);
+
+  pinMode(RS485_RE_PIN, OUTPUT);
+  pinMode(RS485_DE_PIN, OUTPUT);
+  set485Listen();                       // idle in listen
+
+  RS485Serial.begin(57600);
+  // Make sure all pnumatic valves start OFF
+  for (uint8_t i = 0; i < 8; ++i) {
+    pinMode(RELAY_PINS[i], OUTPUT);
+    setRelay(i, false);
+  }
+ closeAllValves();
+ pinMode(igniterPin, OUTPUT);
+
+}
 
 void loop() {
 
@@ -328,6 +301,14 @@ void loop() {
             else if(cmd == '2'){
               HF1toHF2();
               currentHFstate = 2;
+              igniterFired = 1;
+            }
+            else if(cmd == 'S'){
+              softAbort();
+              currentHFstate = 0;
+            }
+            else if(cmd == 'Z'){
+              bleedLoxPress();
             }
           }
           else if(currentHFstate == 2){
@@ -342,37 +323,14 @@ void loop() {
             else if(cmd == '3'){
               HF2toHF3();
               currentHFstate = 3;
-              igniterFired = 1;
-              
-            }
-            else if(cmd == 'Z'){
-              bleedLoxPress();
+              engineFired = 1;
             }
           }
-          else if(currentHFstate == 3){     
-                      
+          else if(currentHFstate == 3){          
             if(cmd == '4'){
               HF3toHF4();
-              currentHFstate = 4;
-              engineFired = 1;
-              
-            }
-            else if(cmd == '0'){
-              HF3toHF0();
               currentHFstate = 0;
-            }
-            else if(cmd == '2'){
-              HF3toHF2();
-              currentHFstate = 2;
-            }
-
-          }
-          else if(currentHFstate == 4){            
-            if(cmd == '5'){
-              HF4toHF5();
-              currentHFstate = 0;
-              engineFired = 0;
-              igniterFired = 0;
+              // ends test
             }
           }
           
@@ -383,3 +341,4 @@ void loop() {
           }
       }
     }
+1

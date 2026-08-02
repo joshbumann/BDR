@@ -1,6 +1,6 @@
-/// V2.9
+// V2.10
 
-// Used on first hotfire
+// For second round of static fires
 
 #include <SoftwareSerial.h>
 
@@ -12,12 +12,12 @@ const uint8_t RS485_DI_PIN = 7;  // TX to MAX485 DI
 
 SoftwareSerial RS485Serial(RS485_RO_PIN, RS485_DI_PIN); // rx, tx
 
-bool hotfireMode = 0;
+int currentHFstate = 0; // Keeps track of current state (0-5). 0 means coldflow mode.
 bool statevec[8] = {0,0,0,0,0,0,0,0};
-int currentHFState = 0; // Track which sequences have been triggered (1-5)
-bool ignFired = 0;
-bool engFired = 0;
 
+
+
+// I/O Functions
 inline void set485Listen() {   // Receive mode: RE=LOW, DE=LOW
   digitalWrite(RS485_RE_PIN, LOW);
   digitalWrite(RS485_DE_PIN, LOW);
@@ -26,20 +26,28 @@ inline void set485Talk() {     // Transmit mode: RE=HIGH, DE=HIGH
   digitalWrite(RS485_RE_PIN, HIGH);
   digitalWrite(RS485_DE_PIN, HIGH);
 }
-
 void transmitCommand(char cmd) {
   set485Talk();
   RS485Serial.write(cmd);
   RS485Serial.write('\n');
   RS485Serial.flush();   // ensure bytes left TX buffer
-  delay(2);              // small guard at 9600 bps
+  delay(2);              // small guard
   set485Listen();
 }
-
 void invalidInput() {
   Serial.println("Invalid input. Please try again.");
 }
-
+char getInput(){
+  String command = Serial.readStringUntil('\n'); // Read until a newline character
+    command.trim(); // Remove any whitespace
+    char cmd = 0;
+   
+        for (uint16_t i = 0; i < command.length(); ++i) {
+          char c = command[i];
+          if ((c >= 'A' && c <= 'M') || (c >= '0' && c <= '5') || c == 'Q' || c == 'Z' || c == 'S') { cmd = c; break; }
+        }
+        return cmd;
+}
 void stateCheck(){
   String stateStr = "";
   
@@ -87,14 +95,164 @@ void stateCheck(){
       }
       else if(statevec[i] == 1){
         stateStr += "OPEN";
-      }
-      
+      }     
 
       Serial.println(stateStr);
-    
-    
   }
 }
+
+
+// HOTFIRE FUNCTIONS
+
+void HF0toHF1(){
+  // Tank press
+
+  statevec[0] = 1;
+  statevec[1] = 1;
+  statevec[2] = 0;
+  statevec[3] = 0;
+  statevec[4] = 0;
+  statevec[5] = 0;
+  statevec[6] = 0;
+  statevec[7] = 0;
+
+  transmitCommand('1');
+
+  Serial.println("Pressurizing tanks.");
+  Serial.println("Verify correct PT data before proceeding.");
+  Serial.println("Available inputs:");
+  Serial.println("0) HARD ABORT");
+  Serial.println("S) Return to coldflow (TANKS WILL STAY PRESSURIZED)");
+  Serial.println("2) HFS2: FIRE IGNITER");
+  Serial.println("Z) Manual LOX tank bleed");
+}
+void HF1toHF2(){
+  statevec[0] = 1;
+  statevec[1] = 1;
+  statevec[2] = 0;
+  statevec[3] = 0;
+  statevec[4] = 0;
+  statevec[5] = 0;
+  statevec[6] = 0;
+  statevec[7] = 0;
+
+  // Fire igniter
+  transmitCommand('2');
+
+  Serial.println("Ignition command sent");
+  Serial.println("Available inputs:");
+  Serial.println("0) HARD ABORT");
+  Serial.println("1) Step back to HFS1");
+  Serial.println("3) OPEN MAIN PROPELLANT VALVES");
+}
+void HF2toHF3(){
+  // Open main prop valves
+
+  statevec[0] = 1;
+  statevec[1] = 1;
+  statevec[2] = 1;
+  statevec[3] = 1;
+  statevec[4] = 0;
+  statevec[5] = 0;
+  statevec[6] = 0;
+  statevec[7] = 0;
+  
+  transmitCommand('3');
+
+  Serial.println("MPV command sent");
+  Serial.println("Available inputs:");
+  Serial.println("4) END TEST");
+
+}
+void HF3toHF4(){
+  // End test
+  statevec[0] = 1;
+  statevec[1] = 1;
+  statevec[2] = 0;
+  statevec[3] = 0;
+  statevec[4] = 0;
+  statevec[5] = 0;
+  statevec[6] = 1;
+  statevec[7] = 1;
+
+  transmitCommand('4');
+
+  Serial.println("Ending test");
+  Serial.println("MPVs Closed");
+  Serial.println("Purge open");
+  Serial.println("MBVs open");
+}
+void HF1toHF0(){
+  // Hard abort: Close MBVs, open purge, and open vent simultaneously
+  
+  statevec[0] = 0;
+  statevec[1] = 0;
+  statevec[2] = 0;
+  statevec[3] = 0;
+  statevec[4] = 1;
+  statevec[5] = 1;
+  statevec[6] = 1;
+  statevec[7] = 1;
+
+  transmitCommand('0');
+  Serial.println("HARD ABORT");
+
+}
+void HF2toHF0(){
+  // Hard abort: Close MBVs, open purge, and open vent simultaneously
+  
+  statevec[0] = 0;
+  statevec[1] = 0;
+  statevec[2] = 0;
+  statevec[3] = 0;
+  statevec[4] = 1;
+  statevec[5] = 1;
+  statevec[6] = 1;
+  statevec[7] = 1;
+
+  transmitCommand('0');
+  Serial.println("HARD ABORT");
+}
+void HF2toHF1(){
+  // Return to tank press
+  statevec[0] = 1;
+  statevec[1] = 1;
+  statevec[2] = 0;
+  statevec[3] = 0;
+  statevec[4] = 0;
+  statevec[5] = 0;
+  statevec[6] = 0;
+  statevec[7] = 0;
+
+  transmitCommand('1');
+  Serial.println("Pressurizing tanks.");
+  Serial.println("Verify correct PT data before proceeding.");
+  Serial.println("Available inputs:");
+  Serial.println("0) HARD ABORT");
+  Serial.println("S) Return to coldflow (TANKS WILL STAY PRESSURIZED)");
+  Serial.println("2) HFS2: FIRE IGNITER");
+  Serial.println("Z) Manual LOX tank bleed");
+}
+void bleedLoxPress(){
+  transmitCommand('Z');
+}
+void softAbort(){
+  // Change nothing, leave up to CF
+
+  statevec[0] = 1;
+  statevec[1] = 1;
+  statevec[2] = 0;
+  statevec[3] = 0;
+  statevec[4] = 0;
+  statevec[5] = 0;
+  statevec[6] = 0;
+  statevec[7] = 0;
+
+  transmitCommand('S');
+  Serial.println("Soft abort: returning to coldflow");
+}
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -104,22 +262,9 @@ void setup() {
   // Initialize RS485 communication (SoftwareSerial)
   
   set485Listen();              // idle in listen
-  RS485Serial.begin(9600);     // must match MEGA
+  RS485Serial.begin(57600);     // must match MEGA
   
   Serial.println(F("UNO RS485 Transmitter ready."));
-}
-
-char getInput(){
-  String command = Serial.readStringUntil('\n'); // Read until a newline character
-    command.trim(); // Remove any whitespace
-    
-    char cmd = 0;
-   
-        for (uint16_t i = 0; i < command.length(); ++i) {
-          char c = command[i];
-          if ((c >= 'A' && c <= 'M') || (c >= '0' && c <= '5') || c == 'Q' || c == 'Z') { cmd = c; break; }
-        }
-        return cmd;
 }
 
 
@@ -127,7 +272,7 @@ void loop() {
 
   if (Serial.available()) {
 
-    if(hotfireMode == 0){
+    if(currentHFstate == 0){
       Serial.println("Available valves: ");
 
       Serial.println("A) Fuel N2 Valve"); // pressurization valves
@@ -150,11 +295,10 @@ void loop() {
       Serial.println("Enter the option of the valve you want to toggle: ");
     }
     char cmd = getInput();
-        
-    
-        if (cmd) {
-          // Transmitted input
-          if(cmd >= 'A' && cmd <= 'M' && hotfireMode == 0){
+
+      if (cmd) {
+        // Input logic
+          if(cmd >= 'A' && cmd <= 'M' && currentHFstate == 0){
             transmitCommand(cmd);
 
             switch(cmd){   // Keep track of states
@@ -202,8 +346,6 @@ void loop() {
                 for(int i = 0; i < 8; i++){
                   statevec[i] = 0;
                 }
-                statevec[4] = 0;
-                statevec[5] = 0;
                 break;
               }
             
@@ -211,220 +353,70 @@ void loop() {
           else if(cmd == 'Q'){
             stateCheck();
           }
-          else if((cmd >= '0' && cmd <= '5')){
-            if(hotfireMode == 0 && cmd == '1'){
-              // enter hotfire mode
-              // currentHFState = 1
-              // transmit 1 to the mega
-              
-              hotfireMode = 1;
-              currentHFState = 1;
-              transmitCommand('1');
+          else if((cmd >= '0' && cmd <= '5') || cmd == 'Z' || cmd == 'S'){
+            if(currentHFstate == 0 && cmd == '1'){
+              // Enter HF mode
 
-              Serial.println("Entered hotfire mode.");
-              Serial.println("Available inputs:");
-              Serial.println("0) Return to coldflow state");
-              Serial.println("2) HFS2: Pressurize tanks");
+              HF0toHF1();
+              currentHFstate = 1;
             }
-            else if(hotfireMode == 1 && currentHFState == 1){ // Handle HFS 1
+            else if(currentHFstate == 1){ // Handle HFS 1
               if(cmd == '0'){
-                // go from state 1 to state 0
-
-                // exit hotfire mode
-                // currentHFState = 0
-                // transmit 0 to the mega
+                // Hard abort
                 
-                statevec[0] = 0;
-                statevec[1] = 0;
-                statevec[2] = 0;
-                statevec[3] = 0;
-                statevec[4] = 1;
-                statevec[5] = 1;
-                statevec[6] = 0;
-                statevec[7] = 0;
+                HF1toHF0();
+                currentHFstate = 0;
+              }
+              else if(cmd == 'S'){
+                // Soft abort
 
-                hotfireMode = 0;
-                currentHFState = 0;
-                transmitCommand('0');
+                softAbort();
+                currentHFstate = 0;
               }
               else if(cmd == '2'){
-                // go from state 1 to state 2
-
-                // currentHFState = 2
-                // transmit 2 to the mega
-                
-                currentHFState = 2;
-                transmitCommand('2');
-
-                Serial.println("Pressurizing tanks.");
-                Serial.println("Verify correct PT data before proceeding.");
-                Serial.println("Available inputs:");
-                Serial.println("0) HARD ABORT");
-                Serial.println("1) HFS1: Depressurize tanks (You will be locked out of controls for 15 seconds)");
-                Serial.println("3) HFS3: Fire igniter");
-                Serial.println("Z) Manual LOX tank bleed");
+                // Fire igniter
+                HF1toHF2();
+                currentHFstate = 2;
+              }
+              else if(cmd == 'Z'){
+                bleedLoxPress();
               }
               else{
                 invalidInput();
               }
             }
-            else if(hotfireMode == 1 && currentHFState == 2){ // Handle HFS 2
+            else if(currentHFstate == 2){ // Handle HFS 2
               if(cmd == '0'){
-                // go from state 2 to state 0
-
-                // exit hotfire mode
-                // currentHFState = 0
-                // transmit 0 to the mega
-                
-                hotfireMode = 0;
-                currentHFState = 0;
-
-                // NOTE: need to update state variables, returning to CF mode
-                statevec[0] = 0;
-                statevec[1] = 0;
-                statevec[2] = 0;
-                statevec[3] = 0;
-                statevec[4] = 1;
-                statevec[5] = 1;
-                statevec[6] = 1;
-                statevec[7] = 1;
-
-                transmitCommand('0');
+                // Hard abort
+                HF2toHF0();
+                currentHFstate = 0;
               }
               else if(cmd == '1'){
                 // go from state 2 to state 1
-
-                // currentHFState = 1
-                // transmit 1 to the mega
-                
-                currentHFState = 1;
-                transmitCommand('1');
-
-                Serial.println("Closing MBVs");
-                Serial.println("You are locked out of controls for 15 seconds");
-                delay(15000);
-                Serial.println("Tanks depressurized");
-                Serial.println("Verify with PT data before proceeding");
-                Serial.println("MBVs:  CLOSED");
-                Serial.println("Vents: OPEN");
-                Serial.println("Available inputs:");
-                Serial.println("0) Return to coldflow state");
-                Serial.println("2) HFS2: Pressurize tanks");
+                HF2toHF1();
+                currentHFstate = 1;
               }
               else if(cmd == '3'){
                 // go from state 2 to state 3
-                currentHFState = 3;
-                transmitCommand('3');
+                HF2toHF3();
+                currentHFstate = 3;
               }
               else{
                 invalidInput();
               }
             }
-            else if(hotfireMode == 1 && currentHFState == 3){
-              
-                Serial.println("Available inputs:");
-                Serial.println("0) Hard abort");
-                Serial.println("2) Return to HFS2");
-                Serial.println("4) Open MPVs  (requires confirmation)");
-                  
+            else if(currentHFstate == 3){         
                 if(cmd == '4'){
-                    // currentHFState = 4
-                    // transmit 4 to the mega
-                    currentHFState = 4;
-                    transmitCommand('4');
-                }
-                else if(cmd == '0'){
-                  // go from state 3 to state 0
-
-                  // exit hotfire mode
-                  // currentHFState = 0
-                  // transmit 0 to the mega
-                  
-                  hotfireMode = 0;
-                  currentHFState = 0;
-
-                  // NOTE: need to update state variables, returning to CF mode
-                  statevec[0] = 0;
-                  statevec[1] = 0;
-                  statevec[2] = 0;
-                  statevec[3] = 0;
-                  statevec[4] = 1;
-                  statevec[5] = 1;
-                  statevec[6] = 1;
-                  statevec[7] = 1;
-
-                  ignFired = 0;
-
-                  transmitCommand('0');
-                }
-                else if(cmd == '2'){
-                  currentHFState = 2;
-                  ignFired = 0;
-                  transmitCommand('2');
-
-                  Serial.println("HFS2");
-                  Serial.println("Available inputs:");
-                  Serial.println("0) HARD ABORT");
-                  Serial.println("1) HFS1: Depressurize tanks (Soft abort)");
-                  Serial.println("3) HFS3: Fire igniter (Requires confirmation)");
-                  Serial.println("Z) Manual LOX tank bleed");
+                  HF3toHF4();
+                  currentHFstate = 0;
                 }
                 else{
                   invalidInput();
                 }
-              
             }
-            else if(hotfireMode == 1 && currentHFState == 4){ // Handle HFS 4
-
-                Serial.println("INPUT 5 TO END TEST");
-                Serial.println("5: Close MPVs, open purge, and return to CF mode");
-              
-                
-                if(cmd == '5'){
-
-                  // hotfireMode off
-                  // currentHFState = 0
-                  // transmit 5 to the mega
-                  
-                  hotfireMode = 0;
-                  currentHFState = 0;
-                  // NOTE: Update state vars before going back to CF
-                  statevec[0] = 0;
-                  statevec[1] = 0;
-                  statevec[2] = 0;
-                  statevec[3] = 0;
-                  statevec[4] = 0;
-                  statevec[5] = 0;
-                  statevec[6] = 1;
-                  statevec[7] = 1;
-
-                  ignFired = 0;
-                  engFired = 0;
-                  
-                  transmitCommand('5');
-                }
-                else{
-                  invalidInput();
-                }
-              }
-            }
-            else{
-              invalidInput();
-            }
-          }
-          else if(cmd == 'Z'){
-            // Check if HFS2
-            // If yes-> bleed func 
-            // If not say bleed is not avalible in outside of HFS2
-            if(currentHFState == 2){
-              transmitCommand('Z');
-            }
-            else{
-              Serial.println("LOX tank bleed is not available outside of HFS2");
-            }
-          }
-          else {
-            invalidInput();
+           
+            
           }
         }
+  }
 }
