@@ -33,6 +33,15 @@ void sendRS485Command(char cmd) {
   set485Listen();
 }
 
+void sendRS485String(const String& msg) {
+  set485Talk();
+  RS485Serial.print(msg);
+  RS485Serial.write('\n');
+  RS485Serial.flush();
+  delay(2);
+  set485Listen();
+}
+
 // Help menu
 void printHelp() {
   Serial.println();
@@ -44,6 +53,8 @@ void printHelp() {
   Serial.println("2 = No Purge Ignition Sequence");
   Serial.println("3 = Initial OX Flood");
   Serial.println("4 = Initial FUEL Flood");
+  Serial.println("T = Show current ignition sequence timings");
+  Serial.println("SET:Name=value = Change a current timing value");
   Serial.println("S = Start hot fire");
   Serial.println("R = Reset hot fire");
   Serial.println("P = Toggle purge (cold flow)");
@@ -56,26 +67,13 @@ void printHelp() {
   Serial.println();
 }
 
-// Read laptop input and extract first valid command
-char getInput() {
+String getInput() {
   String command = Serial.readStringUntil('\n');
   command.trim();
-  command.toUpperCase();
-
-  for (uint16_t i = 0; i < command.length(); ++i) {
-    char c = command[i];
-
-    if (c == 'H' || c == 'C' || c == 'X' ||
-        c == '1' || c == '2' || c == '3' || c == '4' ||
-        c == 'S' || c == 'R' ||
-        c == 'P' || c == 'F' || c == 'O' ||
-        c == 'K' || c == 'L' ||
-        c == 'Q' || c == '?') {
-      return c;
-    }
+  if (command.length() == 0) {
+    return "";
   }
-
-  return 0;
+  return command;
 }
 
 void setup() {
@@ -92,24 +90,52 @@ void setup() {
 }
 
 void loop() {
-  // Laptop -> Mega
   if (Serial.available() > 0) {
-    char cmd = getInput();
+    String cmd = getInput();
 
-    if (cmd == '?') {
-      printHelp();
+    if (cmd.length() == 0) {
+      return;
     }
-    else if (cmd != 0) {
-      sendRS485Command(cmd);
+
+    String upper = cmd;
+    upper.toUpperCase();
+
+    if (upper == "?") {
+      printHelp();
+      return;
+    }
+
+    if (upper == "T") {
+      sendRS485Command('T');
+      Serial.println("Sent: T");
+      return;
+    }
+
+    if (cmd.startsWith("SET:")) {
+      sendRS485String(cmd);
       Serial.print("Sent: ");
       Serial.println(cmd);
+      return;
     }
-    else {
-      Serial.println("Invalid command.");
+
+    if (cmd.length() == 1) {
+      char c = cmd.charAt(0);
+      if (c == 'H' || c == 'C' || c == 'X' ||
+          c == '1' || c == '2' || c == '3' || c == '4' ||
+          c == 'S' || c == 'R' ||
+          c == 'P' || c == 'F' || c == 'O' ||
+          c == 'K' || c == 'L' ||
+          c == 'Q') {
+        sendRS485Command(c);
+        Serial.print("Sent: ");
+        Serial.println(c);
+        return;
+      }
     }
+
+    Serial.println("Invalid command.");
   }
 
-  // Mega -> Laptop
   while (RS485Serial.available() > 0) {
     String reply = RS485Serial.readStringUntil('\n');
     reply.trim();

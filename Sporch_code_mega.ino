@@ -15,13 +15,13 @@ enum State {
   POST_PURGE,
   DONE
 };
-State Current_state = IDLE;
+State Current_State = IDLE;
 enum Mode {
   IDLE_MODE,
   COLD_FLOW_MODE,
   HOT_FIRE_MODE
 };
-Mode Current_mode = IDLE_MODE;
+Mode Current_Mode = IDLE_MODE;
 
 const int RS485_Baud = 9600;
 
@@ -42,17 +42,52 @@ const int Spark_Pin = A2;
 const int Fuel_Pin = 29;
 const int Oxidizer_Pin = 30;
 
-unsigned long State_start_time = 0;
+unsigned long State_Start_Time = 0;
 
 // State Time Values (milliseconds)
-unsigned long Pre_Purge_time = 1500;
-unsigned long Main_Burn_time = 3000;
-unsigned long Post_Purge_time = 2000;
-unsigned long Spark_Lead_time = 500;
-unsigned long OX_Flood_time = 1000;
-unsigned long SECOND_OX_Flood_time = 2500;
-unsigned long FUEL_Flood_time = 1000;
-unsigned long SECOND_FUEL_Flood_time = 2500;
+unsigned long Pre_Purge_Time = 1500;
+unsigned long Main_Burn_Time = 3000;
+unsigned long Post_Purge_Time = 2000;
+unsigned long Spark_Lead_Time = 500;
+unsigned long OX_Flood_Time = 1000;
+unsigned long SECOND_OX_Flood_Time = 2500;
+unsigned long FUEL_Flood_Time = 1000;
+unsigned long SECOND_FUEL_Flood_Time = 2500;
+
+struct TimingEntry {
+  const char* name;
+  unsigned long* value;
+};
+
+TimingEntry Sequence_1[] = {
+  {"Pre_Purge_Time", &Pre_Purge_Time},
+  {"Spark_Lead_Time", &Spark_Lead_Time},
+  {"Main_Burn_Time", &Main_Burn_Time},
+  {"Post_Purge_Time", &Post_Purge_Time}
+};
+
+TimingEntry Sequence_2[] = {
+  {"Spark_Lead_Time", &Spark_Lead_Time},
+  {"Main_Burn_Time", &Main_Burn_Time},
+  {"Post_Purge_Time", &Post_Purge_Time}
+};
+
+TimingEntry Sequence_3[] = {
+  {"OX_Flood_Time", &OX_Flood_Time},
+  {"Spark_Lead_Time", &Spark_Lead_Time},
+  {"Main_Burn_Time", &Main_Burn_Time},
+  {"SECOND_OX_Flood_Time", &SECOND_OX_Flood_Time},
+  {"Post_Purge_Time", &Post_Purge_Time}
+};
+
+TimingEntry Sequence_4[] = {
+  {"FUEL_Flood_Time", &FUEL_Flood_Time},
+  {"Spark_Lead_Time", &Spark_Lead_Time},
+  {"Main_Burn_Time", &Main_Burn_Time},
+  {"SECOND_FUEL_Flood_Time", &SECOND_FUEL_Flood_Time},
+  {"Post_Purge_Time", &Post_Purge_Time}
+};
+
 // State Command Initialization
 bool startCommand = false;
 bool resetCommand = false;
@@ -65,8 +100,8 @@ bool Cold_Flow_Ox = CLOSED;
 bool Cold_Flow_Spark = CLOSED;
 
 // Spark Pulse Logic
-bool Spark_state = false;
-unsigned long Last_Spark_Toggle_time = 0;
+bool Spark_State = false;
+unsigned long Last_Spark_Toggle_Time = 0;
 
 inline void set485Listen() {
   digitalWrite(RS485_RE_PIN, LOW);
@@ -97,12 +132,12 @@ void allOutputsOff() {
   digitalWrite(Fuel_Pin, LOW);
   digitalWrite(Oxidizer_Pin, LOW);
   digitalWrite(Spark_Pin, LOW);
-  Spark_state = false;
+  Spark_State = false;
 }
 
 void enterIdleMode() {
-  Current_mode = IDLE_MODE;
-  Current_state = IDLE;
+  Current_Mode = IDLE_MODE;
+  Current_State = IDLE;
   startCommand = false;
   resetCommand = false;
 
@@ -115,8 +150,8 @@ void enterIdleMode() {
 }
 
 void enterColdFlowMode() {
-  Current_mode = COLD_FLOW_MODE;
-  Current_state = IDLE;
+  Current_Mode = COLD_FLOW_MODE;
+  Current_State = IDLE;
   startCommand = false;
   resetCommand = false;
 
@@ -129,8 +164,8 @@ void enterColdFlowMode() {
 }
 
 void enterHotFireMode() {
-  Current_mode = HOT_FIRE_MODE;
-  Current_state = IDLE;
+  Current_Mode = HOT_FIRE_MODE;
+  Current_State = IDLE;
   startCommand = false;
   resetCommand = false;
 
@@ -142,185 +177,189 @@ void enterHotFireMode() {
   allOutputsOff();
 }
 
-void Enter_state(State New_state) {
-  State_start_time = millis();
-  Current_state = New_state;
+void Enter_State(State New_State) {
+  State_Start_Time = millis();
+  Current_State = New_State;
 
-  switch (Current_state) {
+  switch (Current_State) {
     case IDLE:
-      set_state(CLOSED, CLOSED, CLOSED);
+      set_State(CLOSED, CLOSED, CLOSED);
       break;
     case PRE_PURGE:
-      set_state(OPEN, CLOSED, CLOSED);
+      set_State(OPEN, CLOSED, CLOSED);
       break;
     case SPARK:
-      Last_Spark_Toggle_time = millis();
+      Last_Spark_Toggle_Time = millis();
       break;
     case OX_FLOOD:
-      set_state(OPEN, CLOSED, OPEN);
+      set_State(OPEN, CLOSED, OPEN);
       break;
     case FUEL_FLOOD:
-      set_state(OPEN, OPEN, CLOSED);
+      set_State(OPEN, OPEN, CLOSED);
       break;
     case SECOND_OX_FLOOD:
-      set_state(OPEN, CLOSED, OPEN);
+      set_State(OPEN, CLOSED, OPEN);
       break;
     case MAIN_BURN:
-      set_state(OPEN, OPEN, OPEN);
+      set_State(OPEN, OPEN, OPEN);
       break;
     case SECOND_FUEL_FLOOD:
-      set_state(OPEN, OPEN, CLOSED);
+      set_State(OPEN, OPEN, CLOSED);
       break;
     case POST_PURGE:
-      set_state(OPEN, CLOSED, CLOSED);
+      set_State(OPEN, CLOSED, CLOSED);
       break;
     case DONE:
-      set_state(CLOSED, CLOSED, CLOSED);
+      set_State(CLOSED, CLOSED, CLOSED);
       break;
   }
 }
 
 void hot_fire_ignition_sequence(int ignitionSequence) {
-  unsigned long elapsed = millis() - State_start_time;
+  unsigned long elapsed = millis() - State_Start_Time;
   if (resetCommand) {
     resetCommand = false;
-    Enter_state(IDLE);
+    Enter_State(IDLE);
   }
   switch (ignitionSequence) {
     case 1: // Standard Ignition Sequence
-      switch (Current_state) {
+      switch (Current_State) {
         case IDLE:
           if (startCommand) {
             startCommand = false;
-            Enter_state(PRE_PURGE);
+            Enter_State(PRE_PURGE);
           }
           break;
         case PRE_PURGE:
-          if (elapsed >= Pre_Purge_time) {
-            Enter_state(SPARK);
+          if (elapsed >= Pre_Purge_Time) {
+            Enter_State(SPARK);
           }
           break;
         case SPARK:
-          if (elapsed >= Spark_Lead_time) {
-            Enter_state(MAIN_BURN);
+          if (elapsed >= Spark_Lead_Time) {
+            Enter_State(MAIN_BURN);
           }
           break;
         case MAIN_BURN:
-          if (elapsed >= Main_Burn_time) {
-            Enter_state(POST_PURGE);
+          if (elapsed >= Main_Burn_Time) {
+            Enter_State(POST_PURGE);
           }
           break;
         case POST_PURGE:
-          if (elapsed >= Post_Purge_time) {
-            Enter_state(DONE);
+          if (elapsed >= Post_Purge_Time) {
+            Enter_State(DONE);
           }
           break;
         case DONE:
           break;
       }
+      break;
     case 2: // No Purge Ignition Sequence
-      switch (Current_state) {
+      switch (Current_State) {
         case IDLE:
           if (startCommand) {
             startCommand = false;
-            Enter_state(SPARK);
+            Enter_State(SPARK);
           }
           break;
         case SPARK:
-          if (elapsed >= Spark_Lead_time) {
-            Enter_state(MAIN_BURN);
+          if (elapsed >= Spark_Lead_Time) {
+            Enter_State(MAIN_BURN);
           }
           break;
         case MAIN_BURN:
-          if (elapsed >= Main_Burn_time) {
-            Enter_state(POST_PURGE);
+          if (elapsed >= Main_Burn_Time) {
+            Enter_State(POST_PURGE);
           }
           break;
         case POST_PURGE:
-          if (elapsed >= Post_Purge_time) {
-            Enter_state(DONE);
+          if (elapsed >= Post_Purge_Time) {
+            Enter_State(DONE);
           }
           break;
         case DONE:
           break;
       }
+      break;
     case 3: // Initial OX Flood
-      switch (Current_state) {
+      switch (Current_State) {
         case IDLE:
           if (startCommand) {
             startCommand = false;
-            Enter_state(OX_FLOOD);
+            Enter_State(OX_FLOOD);
           }
           break;
         case OX_FLOOD:
-          if (elapsed >= OX_Flood_time) {
-            Enter_state(SPARK);
+          if (elapsed >= OX_Flood_Time) {
+            Enter_State(SPARK);
           }
           break;
         case SPARK:
-          if (elapsed >= Spark_Lead_time) {
-            Enter_state(MAIN_BURN);
+          if (elapsed >= Spark_Lead_Time) {
+            Enter_State(MAIN_BURN);
           }
           break;
         case MAIN_BURN:
-          if (elapsed >= Main_Burn_time) {
-            Enter_state(SECOND_OX_FLOOD);
+          if (elapsed >= Main_Burn_Time) {
+            Enter_State(SECOND_OX_FLOOD);
           }
           break;
         case SECOND_OX_FLOOD:
-          if (elapsed >= SECOND_OX_Flood_time) {
-            Enter_state(POST_PURGE);
+          if (elapsed >= SECOND_OX_Flood_Time) {
+            Enter_State(POST_PURGE);
           }
-          break;  
+          break;
         case POST_PURGE:
-          if (elapsed >= Post_Purge_time) {
-            Enter_state(DONE);
+          if (elapsed >= Post_Purge_Time) {
+            Enter_State(DONE);
           }
           break;
         case DONE:
           break;
       }
+      break;
     case 4: // Initial FUEL Flood
-      switch (Current_state) {
+      switch (Current_State) {
         case IDLE:
           if (startCommand) {
             startCommand = false;
-            Enter_state(FUEL_FLOOD);
+            Enter_State(FUEL_FLOOD);
           }
           break;
         case FUEL_FLOOD:
-          if (elapsed >= FUEL_Flood_time) {
-            Enter_state(SPARK);
+          if (elapsed >= FUEL_Flood_Time) {
+            Enter_State(SPARK);
           }
           break;
         case SPARK:
-          if (elapsed >= Spark_Lead_time) {
-            Enter_state(MAIN_BURN);
+          if (elapsed >= Spark_Lead_Time) {
+            Enter_State(MAIN_BURN);
           }
           break;
         case MAIN_BURN:
-          if (elapsed >= Main_Burn_time) {
-            Enter_state(SECOND_FUEL_FLOOD);
+          if (elapsed >= Main_Burn_Time) {
+            Enter_State(SECOND_FUEL_FLOOD);
           }
           break;
         case SECOND_FUEL_FLOOD:
-          if (elapsed >= SECOND_FUEL_Flood_time) {
-            Enter_state(POST_PURGE);
+          if (elapsed >= SECOND_FUEL_Flood_Time) {
+            Enter_State(POST_PURGE);
           }
-          break;  
+          break;
         case POST_PURGE:
-          if (elapsed >= Post_Purge_time) {
-            Enter_state(DONE);
+          if (elapsed >= Post_Purge_Time) {
+            Enter_State(DONE);
           }
           break;
         case DONE:
           break;
       }
-    }
+      break;
+  }
 }
 
 void applyColdFlowOutputs() {
-  if (Current_mode != COLD_FLOW_MODE) return;
+  if (Current_Mode != COLD_FLOW_MODE) return;
 
   digitalWrite(Purge_Pin, Cold_Flow_Purge ? HIGH : LOW);
   digitalWrite(Fuel_Pin, Cold_Flow_Fuel ? HIGH : LOW);
@@ -328,31 +367,31 @@ void applyColdFlowOutputs() {
 }
 
 void Update_Spark_Pulse() {
-  bool Spark_active = false;
+  bool Spark_Active = false;
 
-  if (Current_mode == HOT_FIRE_MODE) {
-    Spark_active = (Current_state == SPARK) || (Current_state == MAIN_BURN) || (Current_state == SECOND_FUEL_FLOOD);
-  } else if (Current_mode == COLD_FLOW_MODE) {
-    Spark_active = Cold_Flow_Spark;
+  if (Current_Mode == HOT_FIRE_MODE) {
+    Spark_Active = (Current_State == SPARK) || (Current_State == MAIN_BURN) || (Current_State == SECOND_FUEL_FLOOD);
+  } else if (Current_Mode == COLD_FLOW_MODE) {
+    Spark_Active = Cold_Flow_Spark;
   }
 
-  if (!Spark_active) {
-    Spark_state = false;
+  if (!Spark_Active) {
+    Spark_State = false;
     digitalWrite(Spark_Pin, LOW);
     return;
   }
 
-  unsigned long Current_time_Spark = millis();
+  unsigned long Current_Time_Spark = millis();
 
-  if (Current_time_Spark - Last_Spark_Toggle_time >= Half_Period) {
-    Last_Spark_Toggle_time = Current_time_Spark;
-    Spark_state = !Spark_state;
-    digitalWrite(Spark_Pin, Spark_state ? HIGH : LOW);
+  if (Current_Time_Spark - Last_Spark_Toggle_Time >= Half_Period) {
+    Last_Spark_Toggle_Time = Current_Time_Spark;
+    Spark_State = !Spark_State;
+    digitalWrite(Spark_Pin, Spark_State ? HIGH : LOW);
   }
 }
 
 const char* modeToString() {
-  switch (Current_mode) {
+  switch (Current_Mode) {
     case IDLE_MODE: return "IDLE";
     case COLD_FLOW_MODE: return "COLD_FLOW";
     case HOT_FIRE_MODE: return "HOT_FIRE";
@@ -361,7 +400,7 @@ const char* modeToString() {
 }
 
 const char* stateToString() {
-  switch (Current_state) {
+  switch (Current_State) {
     case IDLE: return "IDLE";
     case PRE_PURGE: return "PRE_PURGE";
     case SPARK: return "SPARK";
@@ -375,6 +414,107 @@ const char* stateToString() {
   return "UNKNOWN";
 }
 
+const char* getSequenceName(int sequence) {
+  switch (sequence) {
+    case 1: return "Standard Ignition Sequence";
+    case 2: return "No Purge Ignition Sequence";
+    case 3: return "Initial OX Flood";
+    case 4: return "Initial FUEL Flood";
+    default: return "Unknown Ignition Sequence";
+  }
+}
+
+TimingEntry* getSequenceEntries(int sequence, int& count) {
+  switch (sequence) {
+    case 1:
+      count = sizeof(Sequence_1) / sizeof(Sequence_1[0]);
+      return Sequence_1;
+    case 2:
+      count = sizeof(Sequence_2) / sizeof(Sequence_2[0]);
+      return Sequence_2;
+    case 3:
+      count = sizeof(Sequence_3) / sizeof(Sequence_3[0]);
+      return Sequence_3;
+    case 4:
+      count = sizeof(Sequence_4) / sizeof(Sequence_4[0]);
+      return Sequence_4;
+    default:
+      static TimingEntry defaultSeq[] = {
+        {"Pre_Purge_Time", &Pre_Purge_Time}
+      };
+      count = 1;
+      return defaultSeq;
+  }
+}
+
+bool setTimingValueByName(const String& name, unsigned long newValue) {
+  int count = 0;
+  TimingEntry* entries = getSequenceEntries(ignitionSequence, count);
+
+  for (int i = 0; i < count; ++i) {
+    if (name.equalsIgnoreCase(entries[i].name)) {
+      *entries[i].value = newValue;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void sendTimingTable() {
+  int count = 0;
+  TimingEntry* entries = getSequenceEntries(ignitionSequence, count);
+
+  String header = "SEQ:" + String(ignitionSequence) + ":" + getSequenceName(ignitionSequence);
+  transmitMessage(header.c_str());
+
+  for (int i = 0; i < count; ++i) {
+    String line = String(entries[i].name) + "=" + String(*entries[i].value);
+    transmitMessage(line.c_str());
+  }
+}
+
+void handleCommandString(const String& packet) {
+  String cmd = packet;
+  cmd.trim();
+
+  if (cmd.equalsIgnoreCase("T")) {
+    sendTimingTable();
+    return;
+  }
+
+  if (cmd.startsWith("SET:")) {
+    String payload = cmd.substring(4);
+    int equalsIndex = payload.indexOf('=');
+
+    if (equalsIndex < 0) {
+      transmitMessage("ERR:FORMAT");
+      return;
+    }
+
+    String name = payload.substring(0, equalsIndex);
+    String valueText = payload.substring(equalsIndex + 1);
+    name.trim();
+    valueText.trim();
+
+    if (name.length() == 0 || valueText.length() == 0) {
+      transmitMessage("ERR:FORMAT");
+      return;
+    }
+
+    unsigned long newValue = valueText.toInt();
+    if (setTimingValueByName(name, newValue)) {
+      String ack = "SET_OK:" + name + "=" + String(newValue);
+      transmitMessage(ack.c_str());
+    } else {
+      transmitMessage("ERR:NAME");
+    }
+    return;
+  }
+
+  transmitMessage("ERR");
+}
+
 void sendStatus() {
   transmitMessage(modeToString());
   transmitMessage(stateToString());
@@ -386,6 +526,9 @@ void sendStatus() {
 
 void handleCommand(char cmd) {
   switch (cmd) {
+    case 'T':
+      sendTimingTable();
+      break;
     case '1':
       ignitionSequence = 1;
       transmitMessage("ACK:1");
@@ -415,7 +558,7 @@ void handleCommand(char cmd) {
       transmitMessage("ACK:X");
       break;
     case 'S':
-      if (Current_mode == HOT_FIRE_MODE && Current_state == IDLE) {
+      if (Current_Mode == HOT_FIRE_MODE && Current_State == IDLE) {
         startCommand = true;
         transmitMessage("ACK:S");
       } else {
@@ -423,7 +566,7 @@ void handleCommand(char cmd) {
       }
       break;
     case 'R':
-      if (Current_mode == HOT_FIRE_MODE) {
+      if (Current_Mode == HOT_FIRE_MODE) {
         resetCommand = true;
         transmitMessage("ACK:R");
       } else {
@@ -431,7 +574,7 @@ void handleCommand(char cmd) {
       }
       break;
     case 'P':
-      if (Current_mode == COLD_FLOW_MODE) {
+      if (Current_Mode == COLD_FLOW_MODE) {
         Cold_Flow_Purge = !Cold_Flow_Purge;
         applyColdFlowOutputs();
         transmitMessage("ACK:P");
@@ -440,7 +583,7 @@ void handleCommand(char cmd) {
       }
       break;
     case 'F':
-      if (Current_mode == COLD_FLOW_MODE) {
+      if (Current_Mode == COLD_FLOW_MODE) {
         Cold_Flow_Fuel = !Cold_Flow_Fuel;
         applyColdFlowOutputs();
         transmitMessage("ACK:F");
@@ -449,7 +592,7 @@ void handleCommand(char cmd) {
       }
       break;
     case 'O':
-      if (Current_mode == COLD_FLOW_MODE) {
+      if (Current_Mode == COLD_FLOW_MODE) {
         Cold_Flow_Ox = !Cold_Flow_Ox;
         applyColdFlowOutputs();
         transmitMessage("ACK:O");
@@ -458,17 +601,17 @@ void handleCommand(char cmd) {
       }
       break;
     case 'K':
-      if (Current_mode == COLD_FLOW_MODE) {
+      if (Current_Mode == COLD_FLOW_MODE) {
         Cold_Flow_Spark = true;
-        Last_Spark_Toggle_time = millis();
-        Spark_state = false;
+        Last_Spark_Toggle_Time = millis();
+        Spark_State = false;
         transmitMessage("ACK:K");
       } else {
         transmitMessage("ERR");
       }
       break;
     case 'L':
-      if (Current_mode == COLD_FLOW_MODE) {
+      if (Current_Mode == COLD_FLOW_MODE) {
         Cold_Flow_Spark = false;
         transmitMessage("ACK:L");
       } else {
@@ -487,11 +630,18 @@ void handleCommand(char cmd) {
 
 void readRS485Commands() {
   while (RS485Serial.available() > 0) {
-    int raw = RS485Serial.read();   // returns -1 to 255
-    if (raw == -1) break;           // safety check
-    char c = (char)raw;             // convert byte to char
-    if (c == '\n' || c == '\r') continue;
-    handleCommand(c);
+    String packet = RS485Serial.readStringUntil('\n');
+    packet.trim();
+
+    if (packet.length() == 0) {
+      continue;
+    }
+
+    if (packet.length() == 1) {
+      handleCommand(packet.charAt(0));
+    } else {
+      handleCommandString(packet);
+    }
   }
 }
 
@@ -508,24 +658,23 @@ void setup() {
 
   set485Listen();
   enterIdleMode();
-  int ignitionSequence = 1; // Default ignition sequence
 }
 
 void loop() {
   readRS485Commands();
 
-  if (Current_mode == HOT_FIRE_MODE) {
-    unsigned long elapsed = millis() - State_start_time;
+  if (Current_Mode == HOT_FIRE_MODE) {
+    unsigned long elapsed = millis() - State_Start_Time;
 
     if (resetCommand) {
       resetCommand = false;
-      Enter_state(IDLE);
+      Enter_State(IDLE);
     }
 
     hot_fire_ignition_sequence(ignitionSequence);
   }
 
-  if (Current_mode == COLD_FLOW_MODE) {
+  if (Current_Mode == COLD_FLOW_MODE) {
     applyColdFlowOutputs();
   }
 
