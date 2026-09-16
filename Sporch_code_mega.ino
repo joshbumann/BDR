@@ -37,10 +37,10 @@ const float Frequency = 60.0;
 const unsigned long Half_Period = (unsigned long)(1000.0 / (Frequency * 2.0));
 
 // Pin Assignment
-const int Purge_Pin = A1;
+const int Purge_Pin = 28;
 const int Spark_Pin = A2;
-const int Fuel_Pin = A3;
-const int Oxidizer_Pin = A4;
+const int Fuel_Pin = 29;
+const int Oxidizer_Pin = 30;
 
 unsigned long State_start_time = 0;
 
@@ -264,7 +264,7 @@ void hot_fire_ignition_sequence(int ignitionSequence) {
           break;
         case MAIN_BURN:
           if (elapsed >= Main_Burn_time) {
-            Enter_state(OX_FLOOD);
+            Enter_state(SECOND_OX_FLOOD);
           }
           break;
         case SECOND_OX_FLOOD:
@@ -300,7 +300,7 @@ void hot_fire_ignition_sequence(int ignitionSequence) {
           break;
         case MAIN_BURN:
           if (elapsed >= Main_Burn_time) {
-            Enter_state(FUEL_FLOOD);
+            Enter_state(SECOND_FUEL_FLOOD);
           }
           break;
         case SECOND_FUEL_FLOOD:
