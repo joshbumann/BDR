@@ -1,0 +1,8 @@
+../Core/Src/hotfire.c:16:6:HF0toHF1	8	static
+../Core/Src/hotfire.c:31:6:handleHF1toHF2	4	static
+../Core/Src/hotfire.c:36:6:handleHF2toHF3	8	static
+../Core/Src/hotfire.c:46:6:handleHF3toHF4	8	static
+../Core/Src/hotfire.c:58:6:handleHardAbort	8	static
+../Core/Src/hotfire.c:73:6:handleHF2toHF1	4	static
+../Core/Src/hotfire.c:79:6:handleBleedLOXPress	8	static
+../Core/Src/hotfire.c:84:6:handleSoftAbort	4	static

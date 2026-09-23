@@ -1,0 +1,3 @@
+../Core/Src/tasks.c:9:6:Task_Fast	3
+../Core/Src/tasks.c:40:6:Task_Mid	1
+../Core/Src/tasks.c:56:6:Task_Slow	1

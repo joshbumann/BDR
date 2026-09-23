@@ -1,0 +1,3 @@
+../Core/Src/scheduler.c:21:9:Scheduler_TakeTask	2
+../Core/Src/scheduler.c:35:6:Scheduler_Init	1
+../Core/Src/scheduler.c:41:6:Scheduler_Tick1msISR	4

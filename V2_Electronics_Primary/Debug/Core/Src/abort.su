@@ -1,0 +1,2 @@
+../Core/Src/abort.c:6:6:Abort_Latch	16	static
+../Core/Src/abort.c:16:6:Abort_IsLatched	4	static

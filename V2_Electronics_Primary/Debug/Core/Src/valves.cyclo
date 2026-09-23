@@ -1,0 +1,4 @@
+../Core/Src/valves.c:15:6:openValve	2
+../Core/Src/valves.c:24:6:closeValve	2
+../Core/Src/valves.c:33:6:closeAllValves	1
+../Core/Src/valves.c:44:6:toggleValve	3

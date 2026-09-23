@@ -1,0 +1,10 @@
+../Core/Src/sensors.c:47:13:Sensors_CheckImmediateRawRedline	16	static
+../Core/Src/sensors.c:53:14:ConvertPressureCountsToEngineering	16	static
+../Core/Src/sensors.c:61:14:ConvertLoadCountsToEngineering	16	static
+../Core/Src/sensors.c:69:6:Sensors_Init	8	static
+../Core/Src/sensors.c:83:6:HAL_ADC_ConvCpltCallback	24	static
+../Core/Src/sensors.c:108:6:Sensors_GetLatestSnapshot	16	static,ignoring_inline_asm
+../Core/Src/sensors.c:114:6:Sensors_TakeFrameReadyFlag	16	static,ignoring_inline_asm
+../Core/Src/sensors.c:124:6:Sensors_IsRedlineLatched	4	static
+../Core/Src/sensors.c:128:6:Sensors_ClearRedlineLatch	4	static
+../Core/Src/sensors.c:132:6:Sensors_UpdateEngineeringValues	8	static
