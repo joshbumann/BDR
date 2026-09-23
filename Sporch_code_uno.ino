@@ -40,6 +40,10 @@ void printHelp() {
   Serial.println("H = Hot fire mode");
   Serial.println("C = Cold flow mode");
   Serial.println("X = Idle / All off");
+  Serial.println("1 = Standard Ignition Sequence");
+  Serial.println("2 = No Purge Ignition Sequence");
+  Serial.println("3 = Initial OX Flood");
+  Serial.println("4 = Initial FUEL Flood");
   Serial.println("S = Start hot fire");
   Serial.println("R = Reset hot fire");
   Serial.println("P = Toggle purge (cold flow)");
@@ -62,6 +66,7 @@ char getInput() {
     char c = command[i];
 
     if (c == 'H' || c == 'C' || c == 'X' ||
+        c == '1' || c == '2' || c == '3' || c == '4' ||
         c == 'S' || c == 'R' ||
         c == 'P' || c == 'F' || c == 'O' ||
         c == 'K' || c == 'L' ||
