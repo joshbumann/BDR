@@ -88,22 +88,22 @@ void Error_Handler(void);
 #define RX_EN_GPIO_Port GPIOC
 #define TX_EN_Pin GPIO_PIN_8
 #define TX_EN_GPIO_Port GPIOA
+#define LOX_Vent_Vlv_Pin GPIO_PIN_15
+#define LOX_Vent_Vlv_GPIO_Port GPIOA
+#define Fuel_Vent_Vlv_Pin GPIO_PIN_10
+#define Fuel_Vent_Vlv_GPIO_Port GPIOC
 #define LOX_Purge_Vlv_Pin GPIO_PIN_11
 #define LOX_Purge_Vlv_GPIO_Port GPIOC
 #define Fuel_Purge_Vlv_Pin GPIO_PIN_12
 #define Fuel_Purge_Vlv_GPIO_Port GPIOC
-#define LOX_Vent_Vlv_Pin GPIO_PIN_2
-#define LOX_Vent_Vlv_GPIO_Port GPIOD
-#define Fuel_Vent_Vlv_Pin GPIO_PIN_3
-#define Fuel_Vent_Vlv_GPIO_Port GPIOB
-#define MOV_Vlv_Pin GPIO_PIN_4
-#define MOV_Vlv_GPIO_Port GPIOB
-#define MFV_Vlv_Pin GPIO_PIN_5
-#define MFV_Vlv_GPIO_Port GPIOB
 #define LOX_N2_Vlv_Pin GPIO_PIN_6
 #define LOX_N2_Vlv_GPIO_Port GPIOB
 #define Fuel_N2_Vlv_Pin GPIO_PIN_7
 #define Fuel_N2_Vlv_GPIO_Port GPIOB
+#define MOV_Vlv_Pin GPIO_PIN_8
+#define MOV_Vlv_GPIO_Port GPIOB
+#define MFV_Vlv_Pin GPIO_PIN_9
+#define MFV_Vlv_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 #define NUM_VALVES 8

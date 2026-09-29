@@ -75,7 +75,7 @@ void Command_Init(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART2) {
-        HAL_UART_Transmit(&huart2, &rxByte, 1, 100);
+        //HAL_UART_Transmit(&huart2, &rxByte, 1, 100);
         (void)RingBuffer_PushByte(rxByte);
         HAL_UART_Receive_IT(&huart2, &rxByte, 1);
     }

@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -46,11 +47,34 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+CAN_HandleTypeDef hcan1;
+
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
+/* Definitions for Check_Redline */
+osThreadId_t Check_RedlineHandle;
+const osThreadAttr_t Check_Redline_attributes = {
+  .name = "Check_Redline",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+/* Definitions for Command_Process */
+osThreadId_t Command_ProcessHandle;
+const osThreadAttr_t Command_Process_attributes = {
+  .name = "Command_Process",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Telemetry_Sendh */
+osThreadId_t Telemetry_SendhHandle;
+const osThreadAttr_t Telemetry_Sendh_attributes = {
+  .name = "Telemetry_Sendh",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* USER CODE BEGIN PV */
 
 uint8_t currentState = Idle;
@@ -63,6 +87,11 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_CAN1_Init(void);
+void Start_Check_Redline(void *argument);
+void Start_Command_Process(void *argument);
+void Start_Telemetry_Sendhousekeeping(void *argument);
+
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -102,35 +131,59 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   MX_USART2_UART_Init();
+  MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim2); //start the timer interupt
 	Sensors_Init();
 	Command_Init();
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of Check_Redline */
+  Check_RedlineHandle = osThreadNew(Start_Check_Redline, NULL, &Check_Redline_attributes);
+
+  /* creation of Command_Process */
+  Command_ProcessHandle = osThreadNew(Start_Command_Process, NULL, &Command_Process_attributes);
+
+  /* creation of Telemetry_Sendh */
+  Telemetry_SendhHandle = osThreadNew(Start_Telemetry_Sendhousekeeping, NULL, &Telemetry_Sendh_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		volatile uint32_t testFast = fastTaskDue;
-		volatile uint32_t testMid  = midTaskDue;
-		volatile uint32_t testSlow = slowTaskDue;
-		//char msg[] = "Hello UART\r\n";
-		//HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), 100);
-		if (Scheduler_TakeTask(&fastTaskDue))
-		{
-			Task_Fast();
-		}
-
-		if (Scheduler_TakeTask(&midTaskDue))
-		{
-			Task_Mid();
-		}
-
-		if (Scheduler_TakeTask(&slowTaskDue))
-		{
-			Task_Slow();
-		}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -245,6 +298,43 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief CAN1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CAN1_Init(void)
+{
+
+  /* USER CODE BEGIN CAN1_Init 0 */
+
+  /* USER CODE END CAN1_Init 0 */
+
+  /* USER CODE BEGIN CAN1_Init 1 */
+
+  /* USER CODE END CAN1_Init 1 */
+  hcan1.Instance = CAN1;
+  hcan1.Init.Prescaler = 16;
+  hcan1.Init.Mode = CAN_MODE_NORMAL;
+  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan1.Init.TimeTriggeredMode = DISABLE;
+  hcan1.Init.AutoBusOff = DISABLE;
+  hcan1.Init.AutoWakeUp = DISABLE;
+  hcan1.Init.AutoRetransmission = DISABLE;
+  hcan1.Init.ReceiveFifoLocked = DISABLE;
+  hcan1.Init.TransmitFifoPriority = DISABLE;
+  if (HAL_CAN_Init(&hcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CAN1_Init 2 */
+
+  /* USER CODE END CAN1_Init 2 */
+
+}
+
+/**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
@@ -334,10 +424,10 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Stream5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
   /* DMA2_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 }
@@ -358,46 +448,32 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, RX_EN_Pin|LOX_Purge_Vlv_Pin|Fuel_Purge_Vlv_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, RX_EN_Pin|Fuel_Vent_Vlv_Pin|LOX_Purge_Vlv_Pin|Fuel_Purge_Vlv_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(TX_EN_GPIO_Port, TX_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, TX_EN_Pin|LOX_Vent_Vlv_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LOX_Vent_Vlv_GPIO_Port, LOX_Vent_Vlv_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LOX_N2_Vlv_Pin|Fuel_N2_Vlv_Pin|MOV_Vlv_Pin|MFV_Vlv_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, Fuel_Vent_Vlv_Pin|MOV_Vlv_Pin|MFV_Vlv_Pin|LOX_N2_Vlv_Pin
-                          |Fuel_N2_Vlv_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : RX_EN_Pin LOX_Purge_Vlv_Pin Fuel_Purge_Vlv_Pin */
-  GPIO_InitStruct.Pin = RX_EN_Pin|LOX_Purge_Vlv_Pin|Fuel_Purge_Vlv_Pin;
+  /*Configure GPIO pins : RX_EN_Pin Fuel_Vent_Vlv_Pin LOX_Purge_Vlv_Pin Fuel_Purge_Vlv_Pin */
+  GPIO_InitStruct.Pin = RX_EN_Pin|Fuel_Vent_Vlv_Pin|LOX_Purge_Vlv_Pin|Fuel_Purge_Vlv_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : TX_EN_Pin */
-  GPIO_InitStruct.Pin = TX_EN_Pin;
+  /*Configure GPIO pins : TX_EN_Pin LOX_Vent_Vlv_Pin */
+  GPIO_InitStruct.Pin = TX_EN_Pin|LOX_Vent_Vlv_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(TX_EN_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LOX_Vent_Vlv_Pin */
-  GPIO_InitStruct.Pin = LOX_Vent_Vlv_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LOX_Vent_Vlv_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : Fuel_Vent_Vlv_Pin MOV_Vlv_Pin MFV_Vlv_Pin LOX_N2_Vlv_Pin
-                           Fuel_N2_Vlv_Pin */
-  GPIO_InitStruct.Pin = Fuel_Vent_Vlv_Pin|MOV_Vlv_Pin|MFV_Vlv_Pin|LOX_N2_Vlv_Pin
-                          |Fuel_N2_Vlv_Pin;
+  /*Configure GPIO pins : LOX_N2_Vlv_Pin Fuel_N2_Vlv_Pin MOV_Vlv_Pin MFV_Vlv_Pin */
+  GPIO_InitStruct.Pin = LOX_N2_Vlv_Pin|Fuel_N2_Vlv_Pin|MOV_Vlv_Pin|MFV_Vlv_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -409,16 +485,88 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	if (htim->Instance == TIM2)
-	{
-		Scheduler_Tick1msISR();
-	}
-}
-
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_Start_Check_Redline */
+/**
+  * @brief  Function implementing the Check_Redline thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_Start_Check_Redline */
+void Start_Check_Redline(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+	printf("Check Redline \n");
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_Start_Command_Process */
+/**
+* @brief Function implementing the Command_Process thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Start_Command_Process */
+void Start_Command_Process(void *argument)
+{
+  /* USER CODE BEGIN Start_Command_Process */
+  /* Infinite loop */
+  for(;;)
+  {
+	printf("Command Processing \n");
+	Commands_Process();
+    osDelay(10);
+  }
+  /* USER CODE END Start_Command_Process */
+}
+
+/* USER CODE BEGIN Header_Start_Telemetry_Sendhousekeeping */
+/**
+* @brief Function implementing the Telemetry_Sendh thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Start_Telemetry_Sendhousekeeping */
+void Start_Telemetry_Sendhousekeeping(void *argument)
+{
+  /* USER CODE BEGIN Start_Telemetry_Sendhousekeeping */
+  /* Infinite loop */
+  for(;;)
+  {
+	printf("Send housekeeping tlm \n");
+    osDelay(50);
+  }
+  /* USER CODE END Start_Telemetry_Sendhousekeeping */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
